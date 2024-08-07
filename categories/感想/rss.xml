@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>感想 on ZER0-Blog</title><link>https://zp9080.github.io/categories/%E6%84%9F%E6%83%B3/</link><description>Recent content in 感想 on ZER0-Blog</description><generator>Hugo</generator><language>zh-CN</language><lastBuildDate>Sun, 28 Jul 2024 10:09:12 +0800</lastBuildDate><atom:link href="https://zp9080.github.io/categories/%E6%84%9F%E6%83%B3/rss.xml" rel="self" type="application/rss+xml"/><item><title>7月近期感想</title><link>https://zp9080.github.io/post/%E6%84%9F%E6%83%B3/7%E6%9C%88%E8%BF%91%E6%9C%9F%E6%84%9F%E6%83%B3/</link><pubDate>Sun, 28 Jul 2024 10:09:12 +0800</pubDate><guid>https://zp9080.github.io/post/%E6%84%9F%E6%83%B3/7%E6%9C%88%E8%BF%91%E6%9C%9F%E6%84%9F%E6%83%B3/</guid><description>&lt;ul>
+&lt;li>近期不知道干什么就想着学学美术搭建一下自己的博客，突然就想起来之前国赛的build工控安全。也是直接给一个项目，要自己去接触整个项目解题。相对于build来说，用hugo搭建博客感觉简单多了，主要是搞懂别人的主题怎么用花费了时间，发现重点是config.yaml这个文件，通读一遍后基本博客就可以按照自己想的形式搭建了&lt;/li>
+&lt;li>windows的powershell可以递归的搜索文字，突然想起来打CTF也可以这样查找想要的文字，&lt;strong>这么做的主要目的是因为不好看一些引用到底在哪里，所以通过找字符串来确定文件是什么，进而进一步进行分析&lt;/strong>，vscode可以看交叉引用但是基本都是函数和定义，难以满足自己的个性化需求&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2;">&lt;code class="language-powershell" data-lang="powershell">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a2f">Get-ChildItem&lt;/span> -Path &lt;span style="color:#b44">&amp;#34;E:\Project\Blog\ZER0-Blog\&amp;#34;&lt;/span> -Recurse | &lt;span style="color:#a2f">Select-String&lt;/span> -Pattern &lt;span style="color:#b44">&amp;#34;网站资讯&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>同时要学会使用AI，这样可以很快的搞明白一些东西，AI写一些脚本还是不错的。同时很多项目大家的习惯都是一样，所以很多文件的名称和路径都是约定熟成的，这时候即可看不懂项目的关系但是也能用&lt;/li>
+&lt;li>自己有一些完美主义，一直纠结博客的形式好看什么的，折腾了好久，感觉这个差不多就行，没必要太完美&lt;/li>
+&lt;li>做的东西要即时备份，特别是在修改一些项目，不备份有时候修改错了就得做恢复工作，这种工作就是重复无意义工作，因此要注意备份&lt;/li>
+&lt;li>很多时候工具的使用会设置参数，搞好路径就行了，如果不想要深入研究要学会很快上手工具&lt;/li>
+&lt;li>溜了溜了，好久没学新东西，博客框架就到此为止了&lt;/li>
+&lt;li>开学RE&lt;/li>
+&lt;/ul></description></item></channel></rss>
