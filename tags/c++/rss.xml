@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>C++ on f1ow-blog</title><link>https://zp9080.github.io/tags/c++/</link><description>Recent content in C++ on f1ow-blog</description><generator>Hugo</generator><language>zh-CN</language><lastBuildDate>Wed, 20 Nov 2024 10:45:21 +0800</lastBuildDate><atom:link href="https://zp9080.github.io/tags/c++/rss.xml" rel="self" type="application/rss+xml"/><item><title>C++环境配置</title><link>https://zp9080.github.io/post/c++/c++%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/</link><pubDate>Wed, 20 Nov 2024 10:45:21 +0800</pubDate><guid>https://zp9080.github.io/post/c++/c++%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/</guid><description/></item><item><title>C++基础进阶</title><link>https://zp9080.github.io/post/c++/c++%E5%9F%BA%E7%A1%80%E8%BF%9B%E9%98%B6/</link><pubDate>Tue, 19 Nov 2024 10:44:06 +0800</pubDate><guid>https://zp9080.github.io/post/c++/c++%E5%9F%BA%E7%A1%80%E8%BF%9B%E9%98%B6/</guid><description/></item><item><title>STL学习</title><link>https://zp9080.github.io/post/c++/stl%E5%AD%A6%E4%B9%A0/</link><pubDate>Fri, 09 Aug 2024 21:41:42 +0800</pubDate><guid>https://zp9080.github.io/post/c++/stl%E5%AD%A6%E4%B9%A0/</guid><description>&lt;h1 id="总结">总结
+&lt;a class="header-anchor" href="#%e6%80%bb%e7%bb%93">&lt;/a>
+&lt;/h1>&lt;div class="highlight">&lt;pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1;">&lt;code class="language-text" data-lang="text">&lt;span style="display:flex;">&lt;span>第一梯队：vector string 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>vector:主要就是用push_back这个方法，将元素添加到向量末尾，也会用到size,erase,begin,end这四个方法，大多数时间会用a[i]这种形式访问。看着和普通数组没太多区别，但是节省了分配内存那些困扰。
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>string:这个就超级常用，常用方法：size,length,empty这些都是和长度相关的。substr这个方法可以是很好用了，有时候处理字符串copy过来过去很麻烦，这个方法解决了很多问题。find，rfind方法查找子字符串。replace替换字符串，append在末尾添加字符串，insert在指定位置添加字符串。erase,clear和字符串清除有关系，不是很常用。c_str转换成C风格的字符串，这个又很常见了。
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>------------------------------------------------------------------------
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>第二梯队：stack,queue,proirity_queue,set,map
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>stack:push,pop,top,empty,size都是很常见的方法，学数据结构的时候都知道这些
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>queue:front,back返回队首队尾的元素的引用。push队尾添加一个元素，pop移处队尾元素。empty,size就不解释了
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>set:元组，就是不会重复元素。insert,erase,find,size,empty都是常见的用法
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>map:键值对，也是很常见的数据结构具体要这样定义
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>std::map&amp;lt;std::string, int&amp;gt; employees;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>employees[&amp;#34;Alice&amp;#34;] = 30;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>------------------------------------------------------------------------
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>第三梯队：priority_queue,sort
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>priority_queue:优先队列，高级的数据结构，定义方法如下
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>struct compare {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> bool operator()(int a, int b) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> return a &amp;gt; b; // 定义最小堆
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>};
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>// 创建一个自定义类型的优先队列，使用最小堆
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>std::priority_queue&amp;lt;int, std::vector&amp;lt;int&amp;gt;, compare&amp;gt; pq_min;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>sort:排序，最常用的方法如下
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>bool compare(int a, int b) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> return a &amp;gt; b; // 降序
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>std::vector&amp;lt;int&amp;gt; vec = {5, 3, 8, 6, 2};
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>// 降序排序
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>std::sort(vec.begin(), vec.end(), compare);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>第四梯队:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>pair
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>#include &amp;lt;utility&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>std::pair&amp;lt;Type1, Type2&amp;gt; myPair;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>pair 中有两个公有成员变量：first：存储第一个值。second：存储第二个值。
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>C++进阶学习</title><link>https://zp9080.github.io/post/c++/c++%E8%BF%9B%E9%98%B6%E5%AD%A6%E4%B9%A0/</link><pubDate>Fri, 09 Aug 2024 21:22:25 +0800</pubDate><guid>https://zp9080.github.io/post/c++/c++%E8%BF%9B%E9%98%B6%E5%AD%A6%E4%B9%A0/</guid><description/></item><item><title>C++基础知识学习</title><link>https://zp9080.github.io/post/c++/c++%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/</link><pubDate>Fri, 09 Aug 2024 15:06:15 +0800</pubDate><guid>https://zp9080.github.io/post/c++/c++%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/</guid><description/></item><item><title>C++初探</title><link>https://zp9080.github.io/post/c++/c++%E5%88%9D%E6%8E%A2/</link><pubDate>Thu, 08 Aug 2024 10:23:09 +0800</pubDate><guid>https://zp9080.github.io/post/c++/c++%E5%88%9D%E6%8E%A2/</guid><description/></item></channel></rss>
