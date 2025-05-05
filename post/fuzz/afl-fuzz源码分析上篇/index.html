@@ -1,0 +1,1252 @@
+<!doctype html><html lang=zh-CN data-theme=light><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><meta name=theme-color content="#222" media="(prefers-color-scheme: light)"><meta name=generator content="Hugo 0.126.1"><link rel="shortcut icon" type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/png sizes=16x16 href=/imgs/icons/favicon_16x16_next.png><link rel=icon type=image/png sizes=32x32 href=/imgs/icons/favicon_32_32_next.png><link rel=apple-touch-icon sizes=180x180 href=/imgs/icons/apple_touch_icon_next.png><meta itemprop=name content="afl-fuzz源码分析上篇"><meta itemprop=description content="集中一点,登峰造极"><meta name=description content="集中一点,登峰造极"><meta itemprop=datePublished zgotmplz><meta itemprop=dateModified zgotmplz><meta itemprop=image content="https://zp9080.github.io/imgs/author.png"><meta itemprop=keywords content="Fuzz"><meta property="og:type" content="article"><meta property="og:title" content="afl-fuzz源码分析上篇"><meta property="og:description" content="集中一点,登峰造极"><meta property="og:image" content="/imgs/author.png"><meta property="og:image:width" content="312"><meta property="og:image:height" content="312"><meta property="og:image:type" content="image/jpeg/png/svg/jpg"><meta property="og:url" content="https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/"><meta property="og:site_name" content="f1ow-blog"><meta property="og:locale" content="zh-CN"><meta property="article:author" content="f1ow"><meta property="article:published_time" content="2024-08-31 15:38:00 +0800 CST"><meta property="article:modified_time" content="2024-08-31 15:38:00 +0800 CST"><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/font-awesome/6.6.0/css/all.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/animate.css/4.1.1/animate.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.css><link rel=stylesheet href=/css/main.min.bfbac3431de920c11b5b1cafa45029ea1bc93d5d3da50fed4ab6924b4c250360.css><script type=text/javascript>(function(){localDB={set:function(e,t,n){if(n===0)return;const s=new Date,o=n*864e5,i={value:t,expiry:s.getTime()+o};localStorage.setItem(e,JSON.stringify(i))},get:function(e){const t=localStorage.getItem(e);if(!t)return void 0;const n=JSON.parse(t),s=new Date;return s.getTime()>n.expiry?(localStorage.removeItem(e),void 0):n.value}},theme={active:function(){const e=localDB.get("theme");if(e==null)return;theme.toggle(e),window.matchMedia("(prefers-color-scheme: dark)").addListener(function(e){theme.toggle(e.matches?"dark":"light")})},toggle:function(e){document.documentElement.setAttribute("data-theme",e),localDB.set("theme",e,2);const t=document.querySelector("iframe.giscus-frame");if(t){const n={setConfig:{theme:e}};t.contentWindow.postMessage({giscus:n},"https://giscus.app")}}},theme.active()})(window)</script><script class=next-config data-name=page type=application/json>{"comments":false,"isHome":false,"isPage":true,"path":"afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87","permalink":"https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/","title":"afl-fuzz源码分析上篇","waline":{"js":[{"alias":"@waline/client","alias_name":"waline","file":"dist/pageview.js","name":"pageview","version":"2.15.8"},{"alias":"@waline/client","alias_name":"waline","file":"dist/comment.js","name":"comment","version":"2.15.8"}]}}</script><script type=text/javascript>document.addEventListener("DOMContentLoaded",()=>{var e=document.createElement("script");e.charset="UTF-8",e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.async=!1,e.defer=!0,document.head.appendChild(e),e.onload=function(){NexT.utils.fmtBusuanzi()}})</script><title>afl-fuzz源码分析上篇 - f1ow-blog</title><noscript><link rel=stylesheet href=/css/noscript.css></noscript></head><body itemscope itemtype=http://schema.org/WebPage class=use-motion><div class=headband></div><div class=overlay></div><main class=main><header class=header itemscope itemtype=http://schema.org/WPHeader><div class=header-inner><div class=site-brand-container><div class=site-nav-toggle><div class=toggle aria-label role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div></div><div class=site-meta><a href=/ class=brand rel=start><i class=logo-line></i><h1 class=site-title>f1ow-blog</h1><i class=logo-line></i></a><p class=site-subtitle itemprop=description>集中一点,登峰造极</p></div><div class=site-nav-right><div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div></div></div><nav class=site-nav><ul class="main-menu menu"><li class="menu-item menu-item-home"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-home hvr-icon"></i>首页</a></li><li class="menu-item menu-item-about"><a href=/about/ class=hvr-icon-pulse rel=section><i class="fa fa-user hvr-icon"></i>关于</a></li><li class="menu-item menu-item-archives"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-archive hvr-icon"></i>归档
+<span class=badge>207</span></a></li><li class="menu-item menu-item-categories"><a href=/categories/ class=hvr-icon-pulse rel=section><i class="fa fa-categories hvr-icon"></i>分类</a></li><li class="menu-item menu-item-tags"><a href=/tags/ class=hvr-icon-pulse rel=section><i class="fa fa-tags hvr-icon"></i>标签</a></li><li class="menu-item menu-item-search"><a role=button class="popup-trigger hvr-icon-pulse"><i class="fa fa-search fa-fw hvr-icon"></i>搜索</a></li></ul></nav><div class=search-pop-overlay><div class="popup search-popup"><div class=search-header><span class=search-icon><i class="fa fa-search"></i></span><div class=search-input-container><input autocomplete=off autocapitalize=off maxlength=80 placeholder=搜索... spellcheck=false type=search class=search-input></div><span class=popup-btn-close role=button><i class="fa fa-times-circle"></i></span></div><div class="search-result-container no-result"><div class=search-result-icon><i class="fa fa-spinner fa-pulse fa-5x"></i></div></div></div></div></div><div class="toggle sidebar-toggle" role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div><aside class=sidebar><div class="sidebar-inner sidebar-nav-active sidebar-toc-active"><ul class=sidebar-nav><li class=sidebar-nav-toc>文章目录</li><li class=sidebar-nav-overview>站点概览</li></ul><div class=sidebar-panel-container><div class="post-toc-wrap sidebar-panel"><div class="post-toc animated"><nav id=TableOfContents><ul><li><a href=#前言>前言</a></li><li><a href=#全局变量>全局变量</a></li><li><a href=#main中fuzz前的准备工作相关部分>main中fuzz前的准备工作相关部分</a></li><li><a href=#setup_signal_handlers>setup_signal_handlers</a></li><li><a href=#check_asan_opts>check_asan_opts</a></li><li><a href=#save_cmdline>save_cmdline</a></li><li><a href=#fix_up_banner>fix_up_banner</a></li><li><a href=#check_if_tty>check_if_tty</a></li><li><a href=#get_core_count>get_core_count</a></li><li><a href=#check_crash_handling>check_crash_handling</a></li><li><a href=#check_cpu_governor>check_cpu_governor</a></li><li><a href=#fix_up_sync>fix_up_sync</a></li><li><a href=#setup_post>setup_post</a></li><li><a href=#setup_shm>setup_shm</a></li><li><a href=#init_count_class16>init_count_class16</a></li><li><a href=#setup_dirs_fds>setup_dirs_fds</a></li><li><a href=#read_testcases>read_testcases</a><ul><li><a href=#shuffle_ptrs>shuffle_ptrs</a></li><li><a href=#add_to_queue>add_to_queue</a></li></ul></li><li><a href=#load_auto>load_auto</a><ul><li><a href=#maybe_add_auto>maybe_add_auto</a></li></ul></li><li><a href=#pivot_inputs>pivot_inputs</a></li><li><a href=#load_extras>load_extras</a></li><li><a href=#find_timeout>find_timeout</a></li><li><a href=#detect_file_args>detect_file_args</a></li><li><a href=#setup_stdio_file>setup_stdio_file</a></li><li><a href=#check_binary>check_binary</a></li></ul></nav></div></div><div class="site-overview-wrap sidebar-panel"><div class="site-author site-overview-item animated" itemprop=author itemscope itemtype=http://schema.org/Person><img class=site-author-image itemprop=image alt=f1ow src=/imgs/img-lazy-loading.gif data-src=/imgs/author.png><p class=site-author-name itemprop=name>f1ow</p><div class=site-description itemprop=description>集中一点,登峰造极</div></div><div class="site-state-wrap site-overview-item animated"><nav class=site-state><div class="site-state-item site-state-posts"><a href=/archives/><span class=site-state-item-count>207</span>
+<span class=site-state-item-name>日志</span></a></div><div class="site-state-item site-state-categories"><a href=/categories/><span class=site-state-item-count>38</span>
+<span class=site-state-item-name>分类</span></a></div><div class="site-state-item site-state-tags"><a href=/tags/><span class=site-state-item-count>80</span>
+<span class=site-state-item-name>标签</span></a></div></nav></div><div class="links-of-social site-overview-item animated"><span class=links-of-social-item><a href=https://github.com/zp9080 title="Github → https://github.com/zp9080" rel=noopener class=hvr-icon-pulse target=_blank><i class="fab fa-github fa-fw hvr-icon"></i>
+Github</a></span></div><div class="cc-license animated" itemprop=license><a href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh class=cc-opacity rel=noopener target=_blank title=共享知识><img src=/imgs/img-lazy-loading.gif data-src=/imgs/cc/big/by_nc_sa.svg alt=共享知识></a></div><div class="links-of-blogroll site-overview-item animated"><div class=links-of-blogroll-title><i class="fa fa-globe fa-fw"></i>
+友情链接</div><ul class=links-of-blogroll-list><li class=links-of-blogroll-item><a href=https://v3rdant.cn/ title=https://v3rdant.cn/ target=_blank>v3rdant</a></li><li class=links-of-blogroll-item><a href=https://juicymio.github.io/ title=https://juicymio.github.io/ target=_blank>juicymio</a></li><li class=links-of-blogroll-item><a href=https://ka7arotto.github.io/ title=https://ka7arotto.github.io/ target=_blank>Goku</a></li></ul></div></div></div></div><div id=siteinfo-card-widget class=sidebar-card-widget><div class=item-headline><i class="fas fa-chart-line"></i>
+<span>网站资讯</span></div><div class=siteinfo><div class=siteinfo-item><div class=item-name><i class="fa-solid fa-calendar-check"></i>已运行：</div><div class=item-count id=runTimes data-publishdate=2024-07-28T00:00:00+00:00></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-user"></i>总访客数：</div><div class=item-count id=busuanzi_value_site_uv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-eye"></i>页面浏览：</div><div class=item-count id=busuanzi_value_site_pv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-font"></i>总字数：</div><div class=item-count id=wordsCount data-count=273686></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-mug-hot"></i>阅读约：</div><div class=item-count id=readTimes data-times=660></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-clock-rotate-left"></i>最后更新于：</div><div class=item-count id=last-push-date data-lastpushdate=2025-02-27T17:57:37+08:00></div></div></div></div></aside><div class=sidebar-dimmer></div></header><div class=tool-buttons><div id=toggle-theme class=button title=深浅模式切换><i class="fas fa-adjust"></i></div><div class=back-to-top role=button title=返回顶部><i class="fa fa-arrow-up"></i>
+<span>0%</span></div></div><div class=reading-progress-bar></div><a role=button class="book-mark-link book-mark-link-fixed"></a><a href=https://github.com/zp9080 rel="noopener external nofollow noreferrer" target=_blank title="Follow me on GitHub" class="exturl github-corner"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0 0 115 115h15l12 27L250 250V0z"/><path d="M128.3 109C113.8 99.7 119 89.6 119 89.6 122 82.7 120.5 78.6 120.5 78.6 119.2 72 123.4 76.3 123.4 76.3 127.3 80.9 125.5 87.3 125.5 87.3 122.9 97.6 130.6 101.9 134.4 103.2" fill="currentcolor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115 115C114.9 115.1 118.7 116.5 119.8 115.4l13.9-13.8C136.9 99.2 139.9 98.4 142.2 98.6 133.8 88 127.5 74.4 143.8 58 148.5 53.4 154 51.2 159.7 51 160.3 49.4 163.2 43.6 171.4 40.1 171.4 40.1 176.1 42.5 178.8 56.2 183.1 58.6 187.2 61.8 190.9 65.4 194.5 69 197.7 73.2 200.1 77.6 213.8 80.2 216.3 84.9 216.3 84.9 212.7 93.1 206.9 96 205.4 96.6 205.1 102.4 203 107.8 198.3 112.5 181.9 128.9 168.3 122.5 157.7 114.1 157.9 116.9 156.7 120.9 152.7 124.9L141 136.5C139.8 137.7 141.6 141.9 141.8 141.8z" fill="currentcolor" class="octo-body"/></svg>
+</a><script type=text/javascript src=//sidecar.gitter.im/dist/sidecar.v1.js async></script><script type=text/javascript>((window.gitter={}).chat={}).options={room:"hugo-next/community"}</script><noscript><div class=noscript-warning>Theme NexT works best with JavaScript enabled</div></noscript><div class="main-inner post posts-expand"><div class=post-block><article itemscope itemtype=http://schema.org/Article class=post-content lang><link itemprop=mainEntityOfPage href=https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/><span hidden itemprop=author itemscope itemtype=http://schema.org/Person><meta itemprop=image content="/imgs/author.png"><meta itemprop=name content="f1ow"></span><span hidden itemprop=publisher itemscope itemtype=http://schema.org/Organization><meta itemprop=name content="f1ow"><meta itemprop=description content="集中一点,登峰造极"></span><span hidden itemprop=post itemscope itemtype=http://schema.org/CreativeWork><meta itemprop=name content="afl-fuzz源码分析上篇"><meta itemprop=description content></span><header class=post-header><h1 class=post-title itemprop="name headline">afl-fuzz源码分析上篇
+<a href=https://github.com/user-name/repo-name/tree/branch-name/subdirectory-name/post/Fuzz/afl-fuzz%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90%e4%b8%8a%e7%af%87.md rel="noopener external nofollow noreferrer" target=_blank class="exturl post-edit-link" title=编辑><i class="fa fa-pen-nib"></i></a></h1><div class=post-meta-container><div class=post-meta-items><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-calendar"></i>
+</span><span class=post-meta-item-text title=发表于>发表于：
+</span><time title="创建时间：2024-08-31 15:38:00 +0800 CST" itemprop="dateCreated datePublished" datetime="2024-08-31 15:38:00 +0800 CST">2024-08-31
+</time></span><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-folder-open"></i>
+</span><span class=post-meta-item-text title=分类于>分类于：
+</span><span itemprop=about itemscope itemtype=http://schema.org/Thing><a href=/categories/fuzz itemprop=url rel=index><span itemprop=name>AEG/Fuzz</span></a></span></span></div><div class=post-meta-items><span class=post-meta-item title=字数><span class=post-meta-item-icon><i class="fas fa-solid fa-file-word"></i>
+</span><span class=post-meta-item-text>字数：</span>
+<span>8578</span>
+</span><span class=post-meta-item title=阅读><span class=post-meta-item-icon><i class="fas fa-solid fa-clock"></i>
+</span><span class=post-meta-item-text>阅读：&ap;</span>
+<span>18分钟</span>
+</span><span class=post-meta-item title=浏览><span class=post-meta-item-icon><i class="fas fa-solid fa-eye"></i>
+</span><span class=post-meta-item-text>浏览：
+</span><span id=busuanzi_value_page_pv data-path=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/><i class="fa fa-sync fa-spin"></i></span></span></div></div></header><div class="post-body autonumber" itemprop=articleBody><p>[TOC]</p><h1 id=前言>前言
+<a class=header-anchor href=#%e5%89%8d%e8%a8%80></a></h1><ul><li>因为afl-fuzz.c源代码很长，因此这部分文章只打算整体过一遍main中fuzz前的准备工作相关部分</li><li>函数只分析和fuzz过程有关的一些函数，有些文件检查，路经检查，系统设置检查那种一般都略过不进行分析，这些不重要的就只在main中用注释的形式写出其作用功能</li><li>有些函数和笔者学习fuzz源码目的不相关，笔者更多是想要在把握fuzz流程的基础上，弄明白fuzz的结构，fuzz如何进行工作，如何变异，得到更合适的testcase，有些函数就算修改fuzz源码也不一定会涉及，所以只要知道功能就好了</li><li>本来想画思维导图的，但是觉得好麻烦就没画了。于是就按顺序分析main函数，查看函数定义，如果函数中还有其他函数，可以用##二级标题更清楚地看明白这个函数里面引用了哪些重要函数</li><li><strong>笔者认为最重要的一些部分</strong></li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>全局变量
+</span></span><span style=display:flex><span>setup_shm
+</span></span><span style=display:flex><span>init_count_class16
+</span></span><span style=display:flex><span>read_testcases
+</span></span></code></pre></div><h1 id=全局变量>全局变量
+<a class=header-anchor href=#%e5%85%a8%e5%b1%80%e5%8f%98%e9%87%8f></a></h1><ul><li>在阅读整个源码前，有必要先看看最前面定义的全局变量都是什么作用，可以根据注释，GPT,网上资料，这样有一个整体的把握。先明白这些大致会做什么，或者猜测它会做什么，实在难以通过命名明白变量的含义留个印象就行</li><li>同时一开始没懂的，粗略看一遍源码后再来看这些全局变量，想想这些在哪些函数出现，有什么作用，又会加深一遍印象</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span>EXP_ST u8 <span style=color:#666>*</span>in_dir,                    <span style=color:#080;font-style:italic>/* Input directory with test cases  */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>out_file,                  <span style=color:#080;font-style:italic>/* File to fuzz, if any     被fuzz的文件        */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>out_dir,                   <span style=color:#080;font-style:italic>/* Working &amp; output directory       */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>sync_dir,                  <span style=color:#080;font-style:italic>/* Synchronization directory        */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>sync_id,                   <span style=color:#080;font-style:italic>/* Fuzzer ID        -M或者-S选项后跟的字符串将被认为是sync_id                */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>use_banner,                <span style=color:#080;font-style:italic>/* Display banner                   */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>in_bitmap,                 <span style=color:#080;font-style:italic>/* Input bitmap       进入了一种无法正常退出或结束的状态，也就是“挂起”状态 */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>doc_path,                  <span style=color:#080;font-style:italic>/* Path to documentation dir        */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>target_path,               <span style=color:#080;font-style:italic>/* Path to target binary            */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>orig_cmdline;              <span style=color:#080;font-style:italic>/* Original command line            */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u32 exec_tmout <span style=color:#666>=</span> EXEC_TIMEOUT; <span style=color:#080;font-style:italic>/* Configurable exec timeout (ms)   */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 hang_tmout <span style=color:#666>=</span> EXEC_TIMEOUT; <span style=color:#080;font-style:italic>/* Timeout used for hang det (ms)   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u64 mem_limit  <span style=color:#666>=</span> MEM_LIMIT;    <span style=color:#080;font-style:italic>/* Memory cap for child (MB)        */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u32 cpu_to_bind <span style=color:#666>=</span> <span style=color:#666>0</span>;           <span style=color:#080;font-style:italic>/* id of free CPU core to bind      */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 stats_update_freq <span style=color:#666>=</span> <span style=color:#666>1</span>;     <span style=color:#080;font-style:italic>/* Stats update frequency (execs)   更新stats的频率*/</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>//以下4个变量都是在变异阶段
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>EXP_ST u8  skip_deterministic,        <span style=color:#080;font-style:italic>/* Skip deterministic stages?       */</span>
+</span></span><span style=display:flex><span>           force_deterministic,       <span style=color:#080;font-style:italic>/* Force deterministic stages?      */</span>
+</span></span><span style=display:flex><span>           use_splicing,              <span style=color:#080;font-style:italic>/* Recombine input files?           */</span>
+</span></span><span style=display:flex><span>           dumb_mode,                 <span style=color:#080;font-style:italic>/* Run in non-instrumented mode?    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#080;font-style:italic>//在update_bitmap_score函数中使用
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           score_changed,             <span style=color:#080;font-style:italic>/* Scoring for favorites changed?   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           kill_signal,               <span style=color:#080;font-style:italic>/* Signal that killed the child     */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>//是否正在恢复一个之前中断的模糊测试任务
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           resuming_fuzz,             <span style=color:#080;font-style:italic>/* Resuming an older fuzzing job?   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           timeout_given,             <span style=color:#080;font-style:italic>/* Specific timeout given?          */</span>
+</span></span><span style=display:flex><span>           cpu_to_bind_given,         <span style=color:#080;font-style:italic>/* Specified cpu_to_bind given?     */</span>
+</span></span><span style=display:flex><span>           not_on_tty,                <span style=color:#080;font-style:italic>/* stdout is not a tty              */</span>
+</span></span><span style=display:flex><span>           term_too_small,            <span style=color:#080;font-style:italic>/* terminal dimensions too small    */</span>
+</span></span><span style=display:flex><span>           uses_asan,                 <span style=color:#080;font-style:italic>/* Target uses ASAN?                */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>//是否不用fork server
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           no_forkserver,             <span style=color:#080;font-style:italic>/* Disable forkserver?              */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>/*
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>              是否用crash_mode
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>              case &#39;C&#39;:  crash mode 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>              if (crash_mode) FATAL(&#34;Multiple -C options not supported&#34;);
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>              crash_mode = FAULT_CRASH;
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>              break;
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           */</span>
+</span></span><span style=display:flex><span>           crash_mode,                <span style=color:#080;font-style:italic>/* Crash mode! Yeah!                */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           in_place_resume,           <span style=color:#080;font-style:italic>/* Attempt in-place resume?   这个没太懂做什么的，没用过      */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#080;font-style:italic>//有关extras字典，还没太弄明白
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           auto_changed,              <span style=color:#080;font-style:italic>/* Auto-generated tokens changed?   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           no_cpu_meter_red,          <span style=color:#080;font-style:italic>/* Feng shui on the status screen   */</span>
+</span></span><span style=display:flex><span>           no_arith,                  <span style=color:#080;font-style:italic>/* Skip most arithmetic ops         */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>//打乱输入队列
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           shuffle_queue,             <span style=color:#080;font-style:italic>/* Shuffle input queue?             */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           bitmap_changed <span style=color:#666>=</span> <span style=color:#666>1</span>,        <span style=color:#080;font-style:italic>/* Time to update bitmap?           */</span>
+</span></span><span style=display:flex><span>           qemu_mode,                 <span style=color:#080;font-style:italic>/* Running in QEMU mode?            */</span>
+</span></span><span style=display:flex><span>           skip_requested,            <span style=color:#080;font-style:italic>/* Skip request, via SIGUSR1        */</span>
+</span></span><span style=display:flex><span>           run_over10m,               <span style=color:#080;font-style:italic>/* Run time over 10 minutes?        */</span>
+</span></span><span style=display:flex><span>           persistent_mode,           <span style=color:#080;font-style:italic>/* Running in persistent mode?      */</span>
+</span></span><span style=display:flex><span>           deferred_mode,             <span style=color:#080;font-style:italic>/* Deferred forkserver mode?        */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>           <span style=color:#080;font-style:italic>//calibrate faster那么calibrate 次数就会变少
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>           fast_cal;                  <span style=color:#080;font-style:italic>/* Try to calibrate faster?         */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//***************************下面这部分和fork server有关，很重要***************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>static</span> s32 out_fd,                    <span style=color:#080;font-style:italic>/* Persistent fd for out_file    这个就是被fuzz的程序的fd，注意和out_dir_fd区分   */</span>
+</span></span><span style=display:flex><span>           dev_urandom_fd <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>,       <span style=color:#080;font-style:italic>/* Persistent fd for /dev/urandom   */</span>
+</span></span><span style=display:flex><span>           dev_null_fd <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>,          <span style=color:#080;font-style:italic>/* Persistent fd for /dev/null      */</span>
+</span></span><span style=display:flex><span>           fsrv_ctl_fd,               <span style=color:#080;font-style:italic>/* Fork server control pipe (write) */</span>
+</span></span><span style=display:flex><span>           fsrv_st_fd;                <span style=color:#080;font-style:italic>/* Fork server status pipe (read)   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 forksrv_pid,               <span style=color:#080;font-style:italic>/* PID of the fork server           */</span>
+</span></span><span style=display:flex><span>           child_pid <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>,            <span style=color:#080;font-style:italic>/* PID of the fuzzed program        */</span>
+</span></span><span style=display:flex><span>           out_dir_fd <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>;           <span style=color:#080;font-style:italic>/* FD of the lock file              */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u8<span style=color:#666>*</span> trace_bits;                <span style=color:#080;font-style:italic>/* SHM with instrumentation bitmap  */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u8  virgin_bits[MAP_SIZE],     <span style=color:#080;font-style:italic>/* Regions yet untouched by fuzzing 标记仍然没有被触及到的区域 */</span>
+</span></span><span style=display:flex><span>           virgin_tmout[MAP_SIZE],    <span style=color:#080;font-style:italic>/* Bits we haven&#39;t seen in tmouts  标记还没有出现在tmout的区域  */</span>
+</span></span><span style=display:flex><span>           virgin_crash[MAP_SIZE];    <span style=color:#080;font-style:italic>/* Bits we haven&#39;t seen in crashes 标记还没有出现在crash的区域 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8  var_bytes[MAP_SIZE];       <span style=color:#080;font-style:italic>/* Bytes that appear to be variable */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 shm_id;                    <span style=color:#080;font-style:italic>/* ID of the SHM region             */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>volatile</span> u8 stop_soon,         <span style=color:#080;font-style:italic>/* Ctrl-C pressed?                  */</span>
+</span></span><span style=display:flex><span>                   clear_screen <span style=color:#666>=</span> <span style=color:#666>1</span>,  <span style=color:#080;font-style:italic>/* Window resized?                  */</span>
+</span></span><span style=display:flex><span>                   child_timed_out;   <span style=color:#080;font-style:italic>/* Traced process timed out?        */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//*****************************下面这部分和输入生成的队列和fuzz_one函数有关，很重要******************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>EXP_ST u32 queued_paths,              <span style=color:#080;font-style:italic>/* Total number of queued testcases  testecases总数*/</span>
+</span></span><span style=display:flex><span>           queued_variable,           <span style=color:#080;font-style:italic>/* Testcases with variable behavior 具有可变行为的testcases总数*/</span>
+</span></span><span style=display:flex><span>           queued_at_start,           <span style=color:#080;font-style:italic>/* Total number of initial inputs  最初的inputs总数 */</span>
+</span></span><span style=display:flex><span>           queued_discovered,         <span style=color:#080;font-style:italic>/* Items discovered during this run 这次run发现的items数量*/</span>
+</span></span><span style=display:flex><span>           queued_imported,           <span style=color:#080;font-style:italic>/* Items imported via -S    和同步测试有关        */</span>
+</span></span><span style=display:flex><span>           queued_favored,            <span style=color:#080;font-style:italic>/* Paths deemed favorable    似乎favorable的路径        */</span>
+</span></span><span style=display:flex><span>           queued_with_cov,           <span style=color:#080;font-style:italic>/* Paths with new coverage bytes   有新覆盖的路径 */</span>
+</span></span><span style=display:flex><span>           pending_not_fuzzed,        <span style=color:#080;font-style:italic>/* Queued but not done yet    在队列中但是没有被fuzz的数量      */</span>
+</span></span><span style=display:flex><span>           pending_favored,           <span style=color:#080;font-style:italic>/* Pending favored paths        被favored但是没有fuzz的数量    */</span>
+</span></span><span style=display:flex><span>           cur_skipped_paths,         <span style=color:#080;font-style:italic>/* Abandoned inputs in cur cycle   当前循环跳过的数量 */</span>
+</span></span><span style=display:flex><span>           cur_depth,                 <span style=color:#080;font-style:italic>/* Current path depth       当前用例深度        */</span>
+</span></span><span style=display:flex><span>           max_depth,                 <span style=color:#080;font-style:italic>/* Max path depth            最大用例深度    */</span>
+</span></span><span style=display:flex><span>           useless_at_start,          <span style=color:#080;font-style:italic>/* Number of useless starting paths */</span>
+</span></span><span style=display:flex><span>           var_byte_count,            <span style=color:#080;font-style:italic>/* Bitmap bytes with var behavior   count_bytes函数的返回值 */</span>
+</span></span><span style=display:flex><span>           current_entry,             <span style=color:#080;font-style:italic>/* Current queue entry ID       当前queue跑到那一个用例了，这个值就是多少    */</span>
+</span></span><span style=display:flex><span>           havoc_div <span style=color:#666>=</span> <span style=color:#666>1</span>;             <span style=color:#080;font-style:italic>/* Cycle count divisor for havoc    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST u64 total_crashes,             <span style=color:#080;font-style:italic>/* Total number of crashes      总共的crashes数量    */</span>
+</span></span><span style=display:flex><span>           unique_crashes,            <span style=color:#080;font-style:italic>/* Crashes with unique signatures   */</span>
+</span></span><span style=display:flex><span>           total_tmouts,              <span style=color:#080;font-style:italic>/* Total number of timeouts        总共的timeouts数量 */</span>
+</span></span><span style=display:flex><span>           unique_tmouts,             <span style=color:#080;font-style:italic>/* Timeouts with unique signatures  */</span>
+</span></span><span style=display:flex><span>           unique_hangs,              <span style=color:#080;font-style:italic>/* Hangs with unique signatures     */</span>
+</span></span><span style=display:flex><span>           total_execs,               <span style=color:#080;font-style:italic>/* Total execve() calls      总共执行execve函数的次数       */</span>
+</span></span><span style=display:flex><span>           slowest_exec_ms,           <span style=color:#080;font-style:italic>/* Slowest testcase non hang in ms  */</span>
+</span></span><span style=display:flex><span>           start_time,                <span style=color:#080;font-style:italic>/* Unix start time (ms)             */</span>
+</span></span><span style=display:flex><span>           last_path_time,            <span style=color:#080;font-style:italic>/* Time for most recent path (ms)   */</span>
+</span></span><span style=display:flex><span>           last_crash_time,           <span style=color:#080;font-style:italic>/* Time for most recent crash (ms)  */</span>
+</span></span><span style=display:flex><span>           last_hang_time,            <span style=color:#080;font-style:italic>/* Time for most recent hang (ms)   */</span>
+</span></span><span style=display:flex><span>           last_crash_execs,          <span style=color:#080;font-style:italic>/* Exec counter at last crash       */</span>
+</span></span><span style=display:flex><span>           queue_cycle,               <span style=color:#080;font-style:italic>/* Queue round counter     遍历了多少次整个queue队列      */</span>
+</span></span><span style=display:flex><span>           cycles_wo_finds,           <span style=color:#080;font-style:italic>/* Cycles without any new paths   没有任何新路径的轮数  */</span>
+</span></span><span style=display:flex><span>           trim_execs,                <span style=color:#080;font-style:italic>/* Execs done to trim input files   */</span>
+</span></span><span style=display:flex><span>           bytes_trim_in,             <span style=color:#080;font-style:italic>/* Bytes coming into the trimmer    */</span>
+</span></span><span style=display:flex><span>           bytes_trim_out,            <span style=color:#080;font-style:italic>/* Bytes coming outa the trimmer    */</span>
+</span></span><span style=display:flex><span>           blocks_eff_total,          <span style=color:#080;font-style:italic>/* Blocks subject to effector maps  */</span>
+</span></span><span style=display:flex><span>           blocks_eff_select;         <span style=color:#080;font-style:italic>/* Blocks selected as fuzzable      */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 subseq_tmouts;             <span style=color:#080;font-style:italic>/* Number of timeouts in a row      */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//*******************************当前fuzz的stage***************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//sprintf(ret, &#34;sync:%s,src:%06u&#34;, syncing_party, syncing_case);
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8 <span style=color:#666>*</span>stage_name <span style=color:#666>=</span> <span style=color:#b44>&#34;init&#34;</span>,       <span style=color:#080;font-style:italic>/* Name of the current fuzz stage   */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>stage_short,               <span style=color:#080;font-style:italic>/* Short stage name                 */</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>syncing_party;             <span style=color:#080;font-style:italic>/* Currently syncing with...    目前正在和哪个用例同步    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 stage_cur, stage_max;      <span style=color:#080;font-style:italic>/* Stage progression                */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 splicing_with <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>;        <span style=color:#080;font-style:italic>/* Splicing with which test case?   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 master_id, master_max;     <span style=color:#080;font-style:italic>/* Master instance job splitting    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 syncing_case;              <span style=color:#080;font-style:italic>/* Syncing with case #...           */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 stage_cur_byte,            <span style=color:#080;font-style:italic>/* Byte offset of current stage op  */</span>
+</span></span><span style=display:flex><span>           stage_cur_val;             <span style=color:#080;font-style:italic>/* Value used for stage op          */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8  stage_val_type;            <span style=color:#080;font-style:italic>/* Value type (STAGE_VAL_*)         */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u64 stage_finds[<span style=color:#666>32</span>],           <span style=color:#080;font-style:italic>/* Patterns found per fuzz stage    */</span>
+</span></span><span style=display:flex><span>           stage_cycles[<span style=color:#666>32</span>];          <span style=color:#080;font-style:italic>/* Execs per fuzz stage             */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 rand_cnt;                  <span style=color:#080;font-style:italic>/* Random number counter            */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u64 total_cal_us,              <span style=color:#080;font-style:italic>/* Total calibration time (us)    总共校验时间  */</span>
+</span></span><span style=display:flex><span>           total_cal_cycles;          <span style=color:#080;font-style:italic>/* Total calibration cycles        总共校验轮数 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u64 total_bitmap_size,         <span style=color:#080;font-style:italic>/* Total bit count for all bitmaps 所有bitmaps总的大小 */</span>
+</span></span><span style=display:flex><span>           total_bitmap_entries;      <span style=color:#080;font-style:italic>/* Number of bitmaps counted     总共bitmaps数量   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 cpu_core_count;            <span style=color:#080;font-style:italic>/* CPU core count                   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef HAVE_AFFINITY
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 cpu_aff <span style=color:#666>=</span> <span style=color:#666>-</span><span style=color:#666>1</span>;       	      <span style=color:#080;font-style:italic>/* Selected CPU core                */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* HAVE_AFFINITY */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> FILE<span style=color:#666>*</span> plot_file;               <span style=color:#080;font-style:italic>/* Gnuplot output file              */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//*************************************input测试用例文件名被存在以下的结构体中*******************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>struct</span> queue_entry {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> fname;                          <span style=color:#080;font-style:italic>/* File name for the test case  文件名称    */</span>
+</span></span><span style=display:flex><span>  u32 len;                            <span style=color:#080;font-style:italic>/* Input length           文件内容长度          */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8  cal_failed,                     <span style=color:#080;font-style:italic>/* Calibration failed?        校验失败次数      */</span>
+</span></span><span style=display:flex><span>      trim_done,                      <span style=color:#080;font-style:italic>/* Trimmed?                     是否被修剪过    */</span>
+</span></span><span style=display:flex><span>      was_fuzzed,                     <span style=color:#080;font-style:italic>/* Had any fuzzing done yet?      是否被fuzz过  */</span>
+</span></span><span style=display:flex><span>      passed_det,                     <span style=color:#080;font-style:italic>/* Deterministic stages passed?    确定性变异阶段已经经过 */</span>
+</span></span><span style=display:flex><span>      has_new_cov,                    <span style=color:#080;font-style:italic>/* Triggers new coverage?        是否触发了新的覆盖   */</span>
+</span></span><span style=display:flex><span>      var_behavior,                   <span style=color:#080;font-style:italic>/* Variable behavior?            是否有可变的行为   */</span>
+</span></span><span style=display:flex><span>      favored,                        <span style=color:#080;font-style:italic>/* Currently favored?            当前是否被favored  */</span>
+</span></span><span style=display:flex><span>      fs_redundant;                   <span style=color:#080;font-style:italic>/* Marked as redundant in the fs?  测试用例是否被标记为冗余 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 bitmap_size,                    <span style=color:#080;font-style:italic>/* Number of bits set in bitmap     */</span>
+</span></span><span style=display:flex><span>      exec_cksum;                     <span style=color:#080;font-style:italic>/* Checksum of the execution trace hash32后得到的结果 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u64 exec_us,                        <span style=color:#080;font-style:italic>/* Execution time (us)       执行时间       */</span>
+</span></span><span style=display:flex><span>      handicap,                       <span style=color:#080;font-style:italic>/* Number of queue cycles behind  经常看到但没太懂这个变量什么意思  */</span>
+</span></span><span style=display:flex><span>      depth;                          <span style=color:#080;font-style:italic>/* Path depth              用例深度         */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> trace_mini;                     <span style=color:#080;font-style:italic>/* Trace bytes, if kept     路径压缩后得到的trace bytes        */</span>
+</span></span><span style=display:flex><span>  u32 tc_ref;                         <span style=color:#080;font-style:italic>/* Trace bytes ref count            */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>struct</span> queue_entry <span style=color:#666>*</span>next,           <span style=color:#080;font-style:italic>/* Next element, if any             */</span>
+</span></span><span style=display:flex><span>                     <span style=color:#666>*</span>next_100;       <span style=color:#080;font-style:italic>/* 100 elements ahead              */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> queue_entry <span style=color:#666>*</span>queue,     <span style=color:#080;font-style:italic>/* Fuzzing queue (linked list)   testcase list最开始的那个指针  */</span>
+</span></span><span style=display:flex><span>                          <span style=color:#666>*</span>queue_cur, <span style=color:#080;font-style:italic>/* Current offset within the queue 当前处理的testscase */</span>
+</span></span><span style=display:flex><span>                          <span style=color:#666>*</span>queue_top, <span style=color:#080;font-style:italic>/* Top of the list      testcase list的顶部             */</span>
+</span></span><span style=display:flex><span>                          <span style=color:#666>*</span>q_prev100; <span style=color:#080;font-style:italic>/* Previous 100 marker     前100标记          */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span>
+</span></span><span style=display:flex><span>  top_rated[MAP_SIZE];                <span style=color:#080;font-style:italic>/* Top entries for bitmap bytes    这个是用来判断用例够不够好的 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//和extra字典有关
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>struct</span> extra_data {
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> data;                           <span style=color:#080;font-style:italic>/* Dictionary token data            */</span>
+</span></span><span style=display:flex><span>  u32 len;                            <span style=color:#080;font-style:italic>/* Dictionary token length          */</span>
+</span></span><span style=display:flex><span>  u32 hit_cnt;                        <span style=color:#080;font-style:italic>/* Use count in the corpus          */</span>
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> extra_data<span style=color:#666>*</span> extras;     <span style=color:#080;font-style:italic>/* Extra tokens to fuzz with        */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 extras_cnt;                <span style=color:#080;font-style:italic>/* Total number of tokens read      */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> extra_data<span style=color:#666>*</span> a_extras;   <span style=color:#080;font-style:italic>/* Automatically selected extras    */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 a_extras_cnt;              <span style=color:#080;font-style:italic>/* Total number of tokens available */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8<span style=color:#666>*</span> (<span style=color:#666>*</span>post_handler)(u8<span style=color:#666>*</span> buf, u32<span style=color:#666>*</span> len);<span style=color:#080;font-style:italic>//
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Interesting values, as per config.h */</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//**********************确定性变异的内容*************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>static</span> s8  interesting_8[]  <span style=color:#666>=</span> { INTERESTING_8 };
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s16 interesting_16[] <span style=color:#666>=</span> { INTERESTING_8, INTERESTING_16 };
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> s32 interesting_32[] <span style=color:#666>=</span> { INTERESTING_8, INTERESTING_16, INTERESTING_32 };
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Fuzzing stages */</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//****************************变异所处的阶段*****************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>enum</span> {
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 00 */</span> STAGE_FLIP1,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 01 */</span> STAGE_FLIP2,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 02 */</span> STAGE_FLIP4,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 03 */</span> STAGE_FLIP8,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 04 */</span> STAGE_FLIP16,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 05 */</span> STAGE_FLIP32,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 06 */</span> STAGE_ARITH8,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 07 */</span> STAGE_ARITH16,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 08 */</span> STAGE_ARITH32,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 09 */</span> STAGE_INTEREST8,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 10 */</span> STAGE_INTEREST16,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 11 */</span> STAGE_INTEREST32,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 12 */</span> STAGE_EXTRAS_UO,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 13 */</span> STAGE_EXTRAS_UI,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 14 */</span> STAGE_EXTRAS_AO,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 15 */</span> STAGE_HAVOC,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 16 */</span> STAGE_SPLICE
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Stage value types */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>enum</span> {
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 00 */</span> STAGE_VAL_NONE,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 01 */</span> STAGE_VAL_LE,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 02 */</span> STAGE_VAL_BE
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Execution status fault codes */</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//*****************************************run_target的返回值************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a2f;font-weight:700>enum</span> {
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 00 */</span> FAULT_NONE,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 01 */</span> FAULT_TMOUT,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 02 */</span> FAULT_CRASH,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 03 */</span> FAULT_ERROR,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 04 */</span> FAULT_NOINST,
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* 05 */</span> FAULT_NOBITS
+</span></span><span style=display:flex><span>};
+</span></span></code></pre></div><h1 id=main中fuzz前的准备工作相关部分>main中fuzz前的准备工作相关部分
+<a class=header-anchor href=#main%e4%b8%adfuzz%e5%89%8d%e7%9a%84%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c%e7%9b%b8%e5%85%b3%e9%83%a8%e5%88%86></a></h1><ul><li>先看main的主要流程，再看main中一些函数，有些函数对理解fuzz不太重要的就不做细致分析了</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Main entry point */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#0b0;font-weight:700>int</span> <span style=color:#00a000>main</span>(<span style=color:#0b0;font-weight:700>int</span> argc, <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  s32 opt;
+</span></span><span style=display:flex><span>  u64 prev_queued <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u32 sync_interval_cnt <span style=color:#666>=</span> <span style=color:#666>0</span>, seek_to;
+</span></span><span style=display:flex><span>  u8  <span style=color:#666>*</span>extras_dir <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u8  mem_limit_given <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u8  exit_1 <span style=color:#666>=</span> <span style=color:#666>!!</span><span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_BENCH_JUST_ONE&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> use_argv;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> timeval tv;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> timezone tz;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>SAYF</span>(cCYA <span style=color:#b44>&#34;afl-fuzz &#34;</span> cBRI VERSION cRST <span style=color:#b44>&#34; by &lt;lcamtuf@google.com&gt;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  doc_path <span style=color:#666>=</span> <span style=color:#00a000>access</span>(DOC_PATH, F_OK) <span style=color:#666>?</span> <span style=color:#b44>&#34;docs&#34;</span> <span style=color:#666>:</span> DOC_PATH;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//初始化随机数种子
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>gettimeofday</span>(<span style=color:#666>&amp;</span>tv, <span style=color:#666>&amp;</span>tz);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>srandom</span>(tv.tv_sec <span style=color:#666>^</span> tv.tv_usec <span style=color:#666>^</span> <span style=color:#00a000>getpid</span>());
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//类似afl-gcc一样处理argv的参数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>while</span> ((opt <span style=color:#666>=</span> <span style=color:#00a000>getopt</span>(argc, argv, <span style=color:#b44>&#34;+i:o:f:m:b:t:T:dnCB:S:M:x:QV&#34;</span>)) <span style=color:#666>&gt;</span> <span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>switch</span> (opt) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//输入用例corpus文件夹
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;i&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* input dir */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (in_dir) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -i options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        in_dir <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(in_dir, <span style=color:#b44>&#34;-&#34;</span>)) in_place_resume <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//输出结果文件夹
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;o&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* output dir */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (out_dir) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -o options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        out_dir <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//大写M，表示以 master 身份运行，deterministic 变异会被打开
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;M&#39;</span><span style=color:#666>:</span> { <span style=color:#080;font-style:italic>/* master sync ID */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          u8<span style=color:#666>*</span> c;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (sync_id) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -S or -M options not supported&#34;</span>);
+</span></span><span style=display:flex><span>          sync_id <span style=color:#666>=</span> <span style=color:#00a000>ck_strdup</span>(optarg);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ((c <span style=color:#666>=</span> <span style=color:#00a000>strchr</span>(sync_id, <span style=color:#b44>&#39;:&#39;</span>))) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#666>*</span>c <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>sscanf</span>(c <span style=color:#666>+</span> <span style=color:#666>1</span>, <span style=color:#b44>&#34;%u/%u&#34;</span>, <span style=color:#666>&amp;</span>master_id, <span style=color:#666>&amp;</span>master_max) <span style=color:#666>!=</span> <span style=color:#666>2</span> <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>                <span style=color:#666>!</span>master_id <span style=color:#666>||</span> <span style=color:#666>!</span>master_max <span style=color:#666>||</span> master_id <span style=color:#666>&gt;</span> master_max <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>                master_max <span style=color:#666>&gt;</span> <span style=color:#666>1000000</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Bogus master ID passed to -M&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          force_deterministic <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//表示以 slave 身份运行。deterministic 变异会被关闭
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;S&#39;</span><span style=color:#666>:</span> 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (sync_id) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -S or -M options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        sync_id <span style=color:#666>=</span> <span style=color:#00a000>ck_strdup</span>(optarg);
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//被fuzz的文件
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;f&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* target file */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (out_file) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -f options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        out_file <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//extras_dir，如果有 dictionary可以给AFL
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;x&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* dictionary */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (extras_dir) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -x options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        extras_dir <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>     <span style=color:#080;font-style:italic>//exec_tmout：设置 exec timeout
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;t&#39;</span><span style=color:#666>:</span> { <span style=color:#080;font-style:italic>/* timeout */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          u8 suffix <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (timeout_given) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -t options not supported&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>sscanf</span>(optarg, <span style=color:#b44>&#34;%u%c&#34;</span>, <span style=color:#666>&amp;</span>exec_tmout, <span style=color:#666>&amp;</span>suffix) <span style=color:#666>&lt;</span> <span style=color:#666>1</span> <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>              optarg[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;-&#39;</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Bad syntax used for -t&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (exec_tmout <span style=color:#666>&lt;</span> <span style=color:#666>5</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Dangerously low value of -t&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (suffix <span style=color:#666>==</span> <span style=color:#b44>&#39;+&#39;</span>) timeout_given <span style=color:#666>=</span> <span style=color:#666>2</span>; <span style=color:#a2f;font-weight:700>else</span> timeout_given <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//小写m表示mem限制
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;m&#39;</span><span style=color:#666>:</span> { <span style=color:#080;font-style:italic>/* mem limit */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          u8 suffix <span style=color:#666>=</span> <span style=color:#b44>&#39;M&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (mem_limit_given) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -m options not supported&#34;</span>);
+</span></span><span style=display:flex><span>          mem_limit_given <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(optarg, <span style=color:#b44>&#34;none&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            mem_limit <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>sscanf</span>(optarg, <span style=color:#b44>&#34;%llu%c&#34;</span>, <span style=color:#666>&amp;</span>mem_limit, <span style=color:#666>&amp;</span>suffix) <span style=color:#666>&lt;</span> <span style=color:#666>1</span> <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>              optarg[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;-&#39;</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Bad syntax used for -m&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>switch</span> (suffix) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;T&#39;</span><span style=color:#666>:</span> mem_limit <span style=color:#666>*=</span> <span style=color:#666>1024</span> <span style=color:#666>*</span> <span style=color:#666>1024</span>; <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;G&#39;</span><span style=color:#666>:</span> mem_limit <span style=color:#666>*=</span> <span style=color:#666>1024</span>; <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;k&#39;</span><span style=color:#666>:</span> mem_limit <span style=color:#666>/=</span> <span style=color:#666>1024</span>; <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;M&#39;</span><span style=color:#666>:</span> <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>default</span><span style=color:#666>:</span>  <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Unsupported suffix or bad syntax for -m&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (mem_limit <span style=color:#666>&lt;</span> <span style=color:#666>5</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Dangerously low value of -m&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#a2f;font-weight:700>sizeof</span>(<span style=color:#0b0;font-weight:700>rlim_t</span>) <span style=color:#666>==</span> <span style=color:#666>4</span> <span style=color:#666>&amp;&amp;</span> mem_limit <span style=color:#666>&gt;</span> <span style=color:#666>2000</span>)
+</span></span><span style=display:flex><span>            <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Value of -m out of range on 32-bit systems&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>      
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;b&#39;</span><span style=color:#666>:</span> { <span style=color:#080;font-style:italic>/* bind CPU core */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (cpu_to_bind_given) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -b options not supported&#34;</span>);
+</span></span><span style=display:flex><span>          cpu_to_bind_given <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>sscanf</span>(optarg, <span style=color:#b44>&#34;%u&#34;</span>, <span style=color:#666>&amp;</span>cpu_to_bind) <span style=color:#666>&lt;</span> <span style=color:#666>1</span> <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>              optarg[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;-&#39;</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Bad syntax used for -b&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//-d选项跳过确定性变异
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;d&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* skip deterministic */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (skip_deterministic) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -d options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        skip_deterministic <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>        use_splicing <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//自己是没太懂这部分，好像是找到一个很有意思的testcase想要对它进行变异然后可以用-B引入这个bitmap
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#080;font-style:italic>//但是afl作者也说这部分他自己只用了一两次，所以这部分不做过多探究
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;B&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* load bitmap */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>/* This is a secret undocumented option! It is useful if you find
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           an interesting test case during a normal fuzzing process, and want
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           to mutate it without rediscovering any of the test cases already
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           found during an earlier run.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           To use this mode, you need to point -B to the fuzz_bitmap produced
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           by an earlier run for the exact same binary... and that&#39;s it.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           I only used this once or twice to get variants of a particular
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           file, so I&#39;m not making this an official setting. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (in_bitmap) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -B options not supported&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        in_bitmap <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>        <span style=color:#00a000>read_bitmap</span>(in_bitmap);
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//打开 crash exploration 模式。根据白皮书，此模式用于探索某个 crash 的潜力。输入一个 crash 用例，fuzzer 将生成很多 crash
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;C&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* crash mode */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (crash_mode) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -C options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        crash_mode <span style=color:#666>=</span> FAULT_CRASH;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//打开 dumb 模式（黑盒模式），不插桩运行。此模式下，目标程序不挂载 shm。若没有设置环境变量 AFL_DUMB_FORKSRV，则也不使用 fork server
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;n&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* dumb mode */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (dumb_mode) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -n options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_DUMB_FORKSRV&#34;</span>)) dumb_mode <span style=color:#666>=</span> <span style=color:#666>2</span>; <span style=color:#a2f;font-weight:700>else</span> dumb_mode <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;T&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* banner */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (use_banner) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -T options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        use_banner <span style=color:#666>=</span> optarg;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;Q&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* QEMU mode */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (qemu_mode) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Multiple -Q options not supported&#34;</span>);
+</span></span><span style=display:flex><span>        qemu_mode <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>mem_limit_given) mem_limit <span style=color:#666>=</span> MEM_LIMIT_QEMU;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#b44>&#39;V&#39;</span><span style=color:#666>:</span> <span style=color:#080;font-style:italic>/* Show version number */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>/* Version number has been printed already, just quit. */</span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>exit</span>(<span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>default</span><span style=color:#666>:</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>usage</span>(argv[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (optind <span style=color:#666>==</span> argc <span style=color:#666>||</span> <span style=color:#666>!</span>in_dir <span style=color:#666>||</span> <span style=color:#666>!</span>out_dir) <span style=color:#00a000>usage</span>(argv[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//设置对应的信号处理的handle,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>setup_signal_handlers</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//检查ASAN参数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>check_asan_opts</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//fix_up_sync函数稍后分析
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (sync_id) <span style=color:#00a000>fix_up_sync</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(in_dir, out_dir))
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Input and output directories can&#39;t be the same&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (crash_mode) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;-C and -n are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (qemu_mode)  <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;-Q and -n are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//根据环境变量设置参数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_NO_FORKSRV&#34;</span>))    no_forkserver    <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_NO_CPU_RED&#34;</span>))    no_cpu_meter_red <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_NO_ARITH&#34;</span>))      no_arith         <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_SHUFFLE_QUEUE&#34;</span>)) shuffle_queue    <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_FAST_CAL&#34;</span>))      fast_cal         <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HANG_TMOUT&#34;</span>)) {
+</span></span><span style=display:flex><span>    hang_tmout <span style=color:#666>=</span> <span style=color:#00a000>atoi</span>(<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HANG_TMOUT&#34;</span>));
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>hang_tmout) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Invalid value of AFL_HANG_TMOUT&#34;</span>);
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode <span style=color:#666>==</span> <span style=color:#666>2</span> <span style=color:#666>&amp;&amp;</span> no_forkserver)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_PRELOAD&#34;</span>)) {
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setenv</span>(<span style=color:#b44>&#34;LD_PRELOAD&#34;</span>, <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_PRELOAD&#34;</span>), <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setenv</span>(<span style=color:#b44>&#34;DYLD_INSERT_LIBRARIES&#34;</span>, <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_PRELOAD&#34;</span>), <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_LD_PRELOAD&#34;</span>))
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Use AFL_PRELOAD instead of AFL_LD_PRELOAD&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//把 fuzzer 运行参数存进 orig_cmdline
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>save_cmdline</span>(argc, argv);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//自定义banner
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>fix_up_banner</span>(argv[optind]);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若有环境变量 AFL_NO_UI，则 not_on_tty = 1
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>check_if_tty</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// cpu 相关
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>get_core_count</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef HAVE_AFFINITY
+</span></span></span><span style=display:flex><span><span style=color:#080></span>  <span style=color:#00a000>bind_to_free_cpu</span>();
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* HAVE_AFFINITY */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果 crash 掉的进程的崩溃报告会被发给某个程序，那么会引入延迟，于是 crash 可能会被误认为是超时
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>// 检查系统配置 /proc/sys/kernel/core_pattern，也就是一开始就要echo core &gt; /proc/sys/kernel/core_pattern
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>check_crash_handling</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若发现 cpu 频率可调，让用户把 cpu 定在最高频率
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>check_cpu_governor</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若指定了环境变量 AFL_POST_LIBRARY，则设置 post_handler 为 lib 中的 afl_postprocess 函数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>setup_post</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//初始化 shm
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>setup_shm</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//初始化 16bit 查找表
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>init_count_class16</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//在工作目录下创建一些文件夹，并打开一些 fd 备用，例如 /dev/urandom
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>setup_dirs_fds</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 把初始 corpus 读入 queue
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>read_testcases</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 读入自动生成的 extra（如果有）
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>load_auto</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 把初始 corpus 复制到 out_dir 的 queue 文件夹下
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>pivot_inputs</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>   <span style=color:#080;font-style:italic>// 如果用户通过 -x 选项指定了 dictionary，则从那里导入 extra
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (extras_dir) <span style=color:#00a000>load_extras</span>(extras_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>timeout_given) <span style=color:#00a000>find_timeout</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>detect_file_args</span>(argv <span style=color:#666>+</span> optind <span style=color:#666>+</span> <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//如果没有设置被fuzz的文件才进入这个if语句，一般用不到
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>out_file) <span style=color:#00a000>setup_stdio_file</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//检查文件是否可以访问等相关
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>check_binary</span>(argv[optind]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  start_time <span style=color:#666>=</span> <span style=color:#00a000>get_cur_time</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (qemu_mode)
+</span></span><span style=display:flex><span>    use_argv <span style=color:#666>=</span> <span style=color:#00a000>get_qemu_argv</span>(argv[<span style=color:#666>0</span>], argv <span style=color:#666>+</span> optind, argc <span style=color:#666>-</span> optind);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>else</span>
+</span></span><span style=display:flex><span>    use_argv <span style=color:#666>=</span> argv <span style=color:#666>+</span> optind;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/*
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>  ...
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>  */</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=setup_signal_handlers>setup_signal_handlers
+<a class=header-anchor href=#setup_signal_handlers></a></h1><ul><li>信号处理函数，设置各种信号句柄</li></ul><h1 id=check_asan_opts>check_asan_opts
+<a class=header-anchor href=#check_asan_opts></a></h1><ul><li>读取环境变量 ASAN_OPTIONS 和 MSAN_OPTIONS</li></ul><h1 id=save_cmdline>save_cmdline
+<a class=header-anchor href=#save_cmdline></a></h1><ul><li>备份命令行指令cmdline数据</li></ul><h1 id=fix_up_banner>fix_up_banner
+<a class=header-anchor href=#fix_up_banner></a></h1><ul><li>ui相关</li></ul><h1 id=check_if_tty>check_if_tty
+<a class=header-anchor href=#check_if_tty></a></h1><ul><li>若有环境变量 AFL_NO_UI，则 not_on_tty = 1</li></ul><h1 id=get_core_count>get_core_count
+<a class=header-anchor href=#get_core_count></a></h1><ul><li>cpu 相关</li></ul><h1 id=check_crash_handling>check_crash_handling
+<a class=header-anchor href=#check_crash_handling></a></h1><ul><li>如果 crash 掉的进程的崩溃报告会被发给某个程序，那么会引入延迟，于是 crash 可能会被误认为是超时</li><li>检查系统配置 /proc/sys/kernel/core_pattern，也就是一开始就要echo core > /proc/sys/kernel/core_pattern</li></ul><h1 id=check_cpu_governor>check_cpu_governor
+<a class=header-anchor href=#check_cpu_governor></a></h1><ul><li>若发现 cpu 频率可调，让用户把 cpu 定在最高频率</li></ul><h1 id=fix_up_sync>fix_up_sync
+<a class=header-anchor href=#fix_up_sync></a></h1><ul><li>检查sync_id是否和要求的形式一样，然后将 sync_dir = out_dir ，out_dir = out_dir/sync_id</li><li>但笔者自己玩fuzz的时候还没太懂-S和-M是干啥的，而且对并行理解只有一点点，所以这里就只是看着函数知道在干嘛，对后面并行的部分也不是很懂</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Validate and fix up out_dir and sync_dir when using -S. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>fix_up_sync</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> x <span style=color:#666>=</span> sync_id;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;-S / -M and -n are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (skip_deterministic) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (force_deterministic)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;use -S instead of -M -d&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;-S already implies -d&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (<span style=color:#666>*</span>x) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>isalnum</span>(<span style=color:#666>*</span>x) <span style=color:#666>&amp;&amp;</span> <span style=color:#666>*</span>x <span style=color:#666>!=</span> <span style=color:#b44>&#39;_&#39;</span> <span style=color:#666>&amp;&amp;</span> <span style=color:#666>*</span>x <span style=color:#666>!=</span> <span style=color:#b44>&#39;-&#39;</span>)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Non-alphanumeric fuzzer ID specified via -S or -M&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    x<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strlen</span>(sync_id) <span style=color:#666>&gt;</span> <span style=color:#666>32</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Fuzzer ID too long&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  x <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/%s&#34;</span>, out_dir, sync_id);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  sync_dir <span style=color:#666>=</span> out_dir;
+</span></span><span style=display:flex><span>  out_dir  <span style=color:#666>=</span> x;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>force_deterministic) {
+</span></span><span style=display:flex><span>    skip_deterministic <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    use_splicing <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=setup_post>setup_post
+<a class=header-anchor href=#setup_post></a></h1><ul><li>根据环境AFL_POST_LIBRARY找到共享库文件路径并加载，解析符号找到afl_postprocess函数并调用</li><li>自己的理解就是这和常见的libc.so.6很类似，支持用户自定义一些操作，这样就可以先不用修改fuzz相关源码而是直接加载这个lib，但是目前应该用不太到</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8<span style=color:#666>*</span> (<span style=color:#666>*</span>post_handler)(u8<span style=color:#666>*</span> buf, u32<span style=color:#666>*</span> len);
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Load postprocessor, if available. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>setup_post</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>void</span><span style=color:#666>*</span> dh;
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> fn <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_POST_LIBRARY&#34;</span>);
+</span></span><span style=display:flex><span>  u32 tlen <span style=color:#666>=</span> <span style=color:#666>6</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>fn) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Loading postprocessor from &#39;%s&#39;...&#34;</span>, fn);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//用于动态加载共享库的函数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  dh <span style=color:#666>=</span> <span style=color:#00a000>dlopen</span>(fn, RTLD_NOW);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>dh) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;%s&#34;</span>, <span style=color:#00a000>dlerror</span>());
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//解析某个符号,可以类比pwn中的libc.sym[&#39;...&#39;]用法
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  post_handler <span style=color:#666>=</span> <span style=color:#00a000>dlsym</span>(dh, <span style=color:#b44>&#34;afl_postprocess&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>post_handler) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Symbol &#39;afl_postprocess&#39; not found.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Do a quick test. It&#39;s better to segfault now than later =) */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>post_handler</span>(<span style=color:#b44>&#34;hello&#34;</span>, <span style=color:#666>&amp;</span>tlen);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;Postprocessor installed successfully.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=setup_shm>setup_shm
+<a class=header-anchor href=#setup_shm></a></h1><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Configure shared memory and virgin_bits. This is called at startup. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>setup_shm</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> shm_str;
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//in_bitmap是用-B选项引入的东西
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>in_bitmap) <span style=color:#00a000>memset</span>(virgin_bits, <span style=color:#666>255</span>, MAP_SIZE);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>memset</span>(virgin_tmout, <span style=color:#666>255</span>, MAP_SIZE);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>memset</span>(virgin_crash, <span style=color:#666>255</span>, MAP_SIZE);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//创建一个新的共享内存段，并返回一个共享内存标识符
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  shm_id <span style=color:#666>=</span> <span style=color:#00a000>shmget</span>(IPC_PRIVATE, MAP_SIZE, IPC_CREAT <span style=color:#666>|</span> IPC_EXCL <span style=color:#666>|</span> <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (shm_id <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;shmget() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>atexit</span>(remove_shm);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  shm_str <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%d&#34;</span>, shm_id);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* If somebody is asking us to fuzz instrumented binaries in dumb mode,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     we don&#39;t want them to detect instrumentation, since we won&#39;t be sending
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     fork server commands. This should be replaced with better auto-detection
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     later on, perhaps? */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//#define SHM_ENV_VAR         &#34;__AFL_SHM_ID&#34;
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>//如果是dumb_mode就不用shm所以不设置，否则设置__AFL_SHM_ID这个环境变量，之前分析的fork server获取环境变量就是在这里设置的
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>dumb_mode) <span style=color:#00a000>setenv</span>(SHM_ENV_VAR, shm_str, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(shm_str);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  trace_bits <span style=color:#666>=</span> <span style=color:#00a000>shmat</span>(shm_id, <span style=color:#a2f>NULL</span>, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>  
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (trace_bits <span style=color:#666>==</span> (<span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>)<span style=color:#666>-</span><span style=color:#666>1</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;shmat() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=init_count_class16>init_count_class16
+<a class=header-anchor href=#init_count_class16></a></h1><ul><li>将 hit count 替换为桶 id,一次读取两个字节来进行处理，这样可以提升效率</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Destructively classify execution counts in a trace. This is used as a
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   preprocessing step for any newly acquired traces. Called on every exec,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   must be fast. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>const</span> u8 count_class_lookup8[<span style=color:#666>256</span>] <span style=color:#666>=</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  [<span style=color:#666>0</span>]           <span style=color:#666>=</span> <span style=color:#666>0</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>1</span>]           <span style=color:#666>=</span> <span style=color:#666>1</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>2</span>]           <span style=color:#666>=</span> <span style=color:#666>2</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>3</span>]           <span style=color:#666>=</span> <span style=color:#666>4</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>4</span> ... <span style=color:#666>7</span>]     <span style=color:#666>=</span> <span style=color:#666>8</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>8</span> ... <span style=color:#666>15</span>]    <span style=color:#666>=</span> <span style=color:#666>16</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>16</span> ... <span style=color:#666>31</span>]   <span style=color:#666>=</span> <span style=color:#666>32</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>32</span> ... <span style=color:#666>127</span>]  <span style=color:#666>=</span> <span style=color:#666>64</span>,
+</span></span><span style=display:flex><span>  [<span style=color:#666>128</span> ... <span style=color:#666>255</span>] <span style=color:#666>=</span> <span style=color:#666>128</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u16 count_class_lookup16[<span style=color:#666>65536</span>];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>init_count_class16</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 b1, b2;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (b1 <span style=color:#666>=</span> <span style=color:#666>0</span>; b1 <span style=color:#666>&lt;</span> <span style=color:#666>256</span>; b1<span style=color:#666>++</span>) 
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>for</span> (b2 <span style=color:#666>=</span> <span style=color:#666>0</span>; b2 <span style=color:#666>&lt;</span> <span style=color:#666>256</span>; b2<span style=color:#666>++</span>)
+</span></span><span style=display:flex><span>      count_class_lookup16[(b1 <span style=color:#666>&lt;&lt;</span> <span style=color:#666>8</span>) <span style=color:#666>+</span> b2] <span style=color:#666>=</span> 
+</span></span><span style=display:flex><span>        (count_class_lookup8[b1] <span style=color:#666>&lt;&lt;</span> <span style=color:#666>8</span>) <span style=color:#666>|</span>
+</span></span><span style=display:flex><span>        count_class_lookup8[b2];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=setup_dirs_fds>setup_dirs_fds
+<a class=header-anchor href=#setup_dirs_fds></a></h1><ul><li>这里主要都是创建一些文件夹和获得fd，具体这些文件夹存什么东西在使用fuzz中会更加清楚，现在不用管这些细节</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Prepare output directories and fds. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>EXP_ST <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>setup_dirs_fds</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> tmp;
+</span></span><span style=display:flex><span>  s32 fd;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Setting up output directories...&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//sync_id不为空则创建sync_idr
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (sync_id <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>mkdir</span>(sync_dir, <span style=color:#666>0700</span>) <span style=color:#666>&amp;&amp;</span> errno <span style=color:#666>!=</span> EEXIST)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, sync_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(out_dir, <span style=color:#666>0700</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (errno <span style=color:#666>!=</span> EEXIST) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>maybe_delete_out_dir</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (in_place_resume)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Resume attempted but old output directory not found&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    out_dir_fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(out_dir, O_RDONLY);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifndef __sun
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (out_dir_fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span> <span style=color:#666>||</span> <span style=color:#00a000>flock</span>(out_dir_fd, LOCK_EX <span style=color:#666>|</span> LOCK_NB))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to flock() output directory.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* !__sun */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Queue directory for any starting &amp; discovered paths. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Top-level directory for queue metadata used for session
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     resume and related tasks. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Directory for flagging queue entries that went through
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     deterministic fuzzing in the past. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/deterministic_done/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Directory with the auto-selected dictionary entries. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/auto_extras/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* The set of paths currently deemed redundant. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/redundant_edges/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* The set of paths showing variable behavior. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/variable_behavior/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Sync directory for keeping track of cooperating fuzzers. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (sync_id) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/.synced/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>) <span style=color:#666>&amp;&amp;</span> (<span style=color:#666>!</span>in_place_resume <span style=color:#666>||</span> errno <span style=color:#666>!=</span> EEXIST))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* All recorded crashes. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/crashes&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* All recorded hangs. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/hangs&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Generally useful file descriptors. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  dev_null_fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(<span style=color:#b44>&#34;/dev/null&#34;</span>, O_RDWR);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dev_null_fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to open /dev/null&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  dev_urandom_fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(<span style=color:#b44>&#34;/dev/urandom&#34;</span>, O_RDONLY);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dev_urandom_fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to open /dev/urandom&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Gnuplot output file. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/plot_data&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(tmp, O_WRONLY <span style=color:#666>|</span> O_CREAT <span style=color:#666>|</span> O_EXCL, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  plot_file <span style=color:#666>=</span> <span style=color:#00a000>fdopen</span>(fd, <span style=color:#b44>&#34;w&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>plot_file) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;fdopen() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>fprintf</span>(plot_file, <span style=color:#b44>&#34;# unix_time, cycles_done, cur_path, paths_total, &#34;</span>
+</span></span><span style=display:flex><span>                     <span style=color:#b44>&#34;pending_total, pending_favs, map_size, unique_crashes, &#34;</span>
+</span></span><span style=display:flex><span>                     <span style=color:#b44>&#34;unique_hangs, max_depth, execs_per_sec</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>                     <span style=color:#080;font-style:italic>/* ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=read_testcases>read_testcases
+<a class=header-anchor href=#read_testcases></a></h1><ol><li>首先检查 in_dir/queue 的可访问权限，拿到 fd；</li><li>扫描 in_dir，对文件夹下的文件进行检查，根据in_dir/.state/deterministic_done/nl[i]->d_name判断其passwd_det值</li><li>调用 add_to_queue(fn. st.st_size, passwd_det) 添加到 queue 中</li><li>设置 last_path_time 为 0；设置 queued_at_start = queued_paths</li></ol><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Read all testcases from the input directory, then queue them for testing.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   Called at startup. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>read_testcases</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> dirent <span style=color:#666>**</span>nl;
+</span></span><span style=display:flex><span>  s32 nl_cnt;
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> fn;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Auto-detect non-in-place resumption attempts. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//检查 in_dir/queue 的可访问权限，拿到 fd
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue&#34;</span>, in_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>access</span>(fn, F_OK)) in_dir <span style=color:#666>=</span> fn; <span style=color:#a2f;font-weight:700>else</span> <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Scanning &#39;%s&#39;...&#34;</span>, in_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* We use scandir() + alphasort() rather than readdir() because otherwise,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     the ordering  of test cases would vary somewhat randomly and would be
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     difficult to control. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  nl_cnt <span style=color:#666>=</span> <span style=color:#00a000>scandir</span>(in_dir, <span style=color:#666>&amp;</span>nl, <span style=color:#a2f>NULL</span>, alphasort);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (nl_cnt <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (errno <span style=color:#666>==</span> ENOENT <span style=color:#666>||</span> errno <span style=color:#666>==</span> ENOTDIR)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;The input directory does not seem to be valid - try again. The fuzzer needs</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;    one or more test case to start with - ideally, a small file under 1 kB</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;    or so. The cases must be stored as regular files directly in the input</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;    directory.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to open &#39;%s&#39;&#34;</span>, in_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (shuffle_queue <span style=color:#666>&amp;&amp;</span> nl_cnt <span style=color:#666>&gt;</span> <span style=color:#666>1</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Shuffling queue...&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//打乱一开始构建的queue中的testcase的顺序
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>shuffle_ptrs</span>((<span style=color:#0b0;font-weight:700>void</span><span style=color:#666>**</span>)nl, nl_cnt);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//遍历in_dir，然后调用add_to_queue函数将testcase加入到queue中
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> nl_cnt; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>struct</span> stat st;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/%s&#34;</span>, in_dir, nl[i]<span style=color:#666>-&gt;</span>d_name);
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> dfn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/.state/deterministic_done/%s&#34;</span>, in_dir, nl[i]<span style=color:#666>-&gt;</span>d_name);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8  passed_det <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>free</span>(nl[i]); <span style=color:#080;font-style:italic>/* not tracked */</span>
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>lstat</span>(fn, <span style=color:#666>&amp;</span>st) <span style=color:#666>||</span> <span style=color:#00a000>access</span>(fn, R_OK))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to access &#39;%s&#39;&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* This also takes care of . and .. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>S_ISREG</span>(st.st_mode) <span style=color:#666>||</span> <span style=color:#666>!</span>st.st_size <span style=color:#666>||</span> <span style=color:#00a000>strstr</span>(fn, <span style=color:#b44>&#34;/README.testcases&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>ck_free</span>(dfn);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (st.st_size <span style=color:#666>&gt;</span> MAX_FILE) 
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Test case &#39;%s&#39; is too big (%s, limit is %s)&#34;</span>, fn,
+</span></span><span style=display:flex><span>            <span style=color:#00a000>DMS</span>(st.st_size), <span style=color:#00a000>DMS</span>(MAX_FILE));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Check for metadata that indicates that deterministic fuzzing
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       is complete for this entry. We don&#39;t want to repeat deterministic
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       fuzzing when resuming aborted scans, because it would be pointless
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       and probably very time-consuming. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>access</span>(dfn, F_OK)) passed_det <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(dfn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>add_to_queue</span>(fn, st.st_size, passed_det);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>free</span>(nl); <span style=color:#080;font-style:italic>/* not tracked */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>queued_paths) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;Looks like there are no valid test cases in the input directory! The fuzzer</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;    needs one or more test case to start with - ideally, a small file under</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;    1 kB or so. The cases must be stored as regular files directly in the</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;    input directory.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;No usable test cases in &#39;%s&#39;&#34;</span>, in_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  last_path_time <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  queued_at_start <span style=color:#666>=</span> queued_paths;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=shuffle_ptrs>shuffle_ptrs
+<a class=header-anchor href=#shuffle_ptrs></a></h2><ul><li>就是对指针进行混淆，打乱testcase原本的顺序</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Shuffle an array of pointers. Might be slightly biased. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>shuffle_ptrs</span>(<span style=color:#0b0;font-weight:700>void</span><span style=color:#666>**</span> ptrs, u32 cnt) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> cnt <span style=color:#666>-</span> <span style=color:#666>2</span>; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u32 j <span style=color:#666>=</span> i <span style=color:#666>+</span> <span style=color:#00a000>UR</span>(cnt <span style=color:#666>-</span> i);
+</span></span><span style=display:flex><span>    <span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>s <span style=color:#666>=</span> ptrs[i];
+</span></span><span style=display:flex><span>    ptrs[i] <span style=color:#666>=</span> ptrs[j];
+</span></span><span style=display:flex><span>    ptrs[j] <span style=color:#666>=</span> s;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=add_to_queue>add_to_queue
+<a class=header-anchor href=#add_to_queue></a></h2><ul><li>将fname,file_size,testcase的depth,passed_det添加到queue中，并更新queue的相关指针</li><li>让queued_paths++;pending_not_fuzzed++;更新 last_path_time = get_cur_time();</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Append new test case to the queue. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>add_to_queue</span>(u8<span style=color:#666>*</span> fname, u32 len, u8 passed_det) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span> q <span style=color:#666>=</span> <span style=color:#00a000>ck_alloc</span>(<span style=color:#a2f;font-weight:700>sizeof</span>(<span style=color:#a2f;font-weight:700>struct</span> queue_entry));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>fname        <span style=color:#666>=</span> fname;
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>len          <span style=color:#666>=</span> len;
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>depth        <span style=color:#666>=</span> cur_depth <span style=color:#666>+</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>passed_det   <span style=color:#666>=</span> passed_det;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>depth <span style=color:#666>&gt;</span> max_depth) max_depth <span style=color:#666>=</span> q<span style=color:#666>-&gt;</span>depth;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (queue_top) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    queue_top<span style=color:#666>-&gt;</span>next <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>    queue_top <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> q_prev100 <span style=color:#666>=</span> queue <span style=color:#666>=</span> queue_top <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  queued_paths<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>  pending_not_fuzzed<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  cycles_wo_finds <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Set next_100 pointer for every 100th element (index 0, 100, etc) to allow faster iteration. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> ((queued_paths <span style=color:#666>-</span> <span style=color:#666>1</span>) <span style=color:#666>%</span> <span style=color:#666>100</span> <span style=color:#666>==</span> <span style=color:#666>0</span> <span style=color:#666>&amp;&amp;</span> queued_paths <span style=color:#666>&gt;</span> <span style=color:#666>1</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    q_prev100<span style=color:#666>-&gt;</span>next_100 <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>    q_prev100 <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  last_path_time <span style=color:#666>=</span> <span style=color:#00a000>get_cur_time</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=load_auto>load_auto
+<a class=header-anchor href=#load_auto></a></h1><ul><li>加载生成的提取出来的字典的token</li><li>但我有点没太理解in_dir/.state/auto_extras/是怎么创建的，看下面的代码也只发现一开始setup_dirs_fds函数也只是创建了out_dir/queue/.state/auto_extras/,可能是要自己在in_dir添加这个???，等到进一步学习再解决这个疑惑</li><li>主要是有extradictionary和autodictionary两种字典，extradictionary是用户自己引入的，对应extras结构体数组，extras_cnt记录数量，而autodictionary对应a_extras结构体数组，a_extras_cnt用来计数</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span>tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/auto_extras/&#34;</span>, out_dir);
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>mkdir</span>(tmp, <span style=color:#666>0700</span>)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, tmp);
+</span></span><span style=display:flex><span><span style=color:#00a000>ck_free</span>(tmp);
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Load automatically generated extras. */</span>
+</span></span><span style=display:flex><span><span style=color:#080>#define USE_AUTO_EXTRAS     50
+</span></span></span><span style=display:flex><span><span style=color:#080>#define MAX_AUTO_EXTRA      32
+</span></span></span><span style=display:flex><span><span style=color:#080></span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>load_auto</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> USE_AUTO_EXTRAS; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8  tmp[MAX_AUTO_EXTRA <span style=color:#666>+</span> <span style=color:#666>1</span>];
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/.state/auto_extras/auto_%06u&#34;</span>, in_dir, i);
+</span></span><span style=display:flex><span>    s32 fd, len;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(fn, O_RDONLY, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (errno <span style=color:#666>!=</span> ENOENT) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to open &#39;%s&#39;&#34;</span>, fn);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* We read one byte more to cheaply detect tokens that are too
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       long (and skip them). */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    len <span style=color:#666>=</span> <span style=color:#00a000>read</span>(fd, tmp, MAX_AUTO_EXTRA <span style=color:#666>+</span> <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (len <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to read from &#39;%s&#39;&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (len <span style=color:#666>&gt;=</span> MIN_AUTO_EXTRA <span style=color:#666>&amp;&amp;</span> len <span style=color:#666>&lt;=</span> MAX_AUTO_EXTRA)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>maybe_add_auto</span>(tmp, len);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (i) <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;Loaded %u auto-discovered dictionary tokens.&#34;</span>, i);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>else</span> <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;No auto-generated dictionary tokens to reuse.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=maybe_add_auto>maybe_add_auto
+<a class=header-anchor href=#maybe_add_auto></a></h2><ul><li>主要是判断这个auto字典是否和已经定义的interesting字典，以及用户自己引入的extradictionary是否重复，不重复就加到a_extras中</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Helper function for maybe_add_auto() */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>inline</span> u8 <span style=color:#00a000>memcmp_nocase</span>(u8<span style=color:#666>*</span> m1, u8<span style=color:#666>*</span> m2, u32 len) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (len<span style=color:#666>--</span>) <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>tolower</span>(<span style=color:#666>*</span>(m1<span style=color:#666>++</span>)) <span style=color:#666>^</span> <span style=color:#00a000>tolower</span>(<span style=color:#666>*</span>(m2<span style=color:#666>++</span>))) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* Maybe add automatic extra. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>maybe_add_auto</span>(u8<span style=color:#666>*</span> mem, u32 len) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Allow users to specify that they don&#39;t want auto dictionaries. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果用户不想使用词典，则直接返回
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>MAX_AUTO_EXTRAS <span style=color:#666>||</span> <span style=color:#666>!</span>USE_AUTO_EXTRAS) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Skip runs of identical bytes. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果 token 所有字符都相同，则不加入字典
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>1</span>; i <span style=color:#666>&lt;</span> len; i<span style=color:#666>++</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (mem[<span style=color:#666>0</span>] <span style=color:#666>^</span> mem[i]) <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (i <span style=color:#666>==</span> len) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Reject builtin interesting values. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果与内置的 interesting 表重复，则放弃。这里考虑了大小端
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (len <span style=color:#666>==</span> <span style=color:#666>2</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    i <span style=color:#666>=</span> <span style=color:#a2f;font-weight:700>sizeof</span>(interesting_16) <span style=color:#666>&gt;&gt;</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>while</span> (i<span style=color:#666>--</span>) 
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>*</span>((u16<span style=color:#666>*</span>)mem) <span style=color:#666>==</span> interesting_16[i] <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>((u16<span style=color:#666>*</span>)mem) <span style=color:#666>==</span> <span style=color:#00a000>SWAP16</span>(interesting_16[i])) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (len <span style=color:#666>==</span> <span style=color:#666>4</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    i <span style=color:#666>=</span> <span style=color:#a2f;font-weight:700>sizeof</span>(interesting_32) <span style=color:#666>&gt;&gt;</span> <span style=color:#666>2</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>while</span> (i<span style=color:#666>--</span>) 
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>*</span>((u32<span style=color:#666>*</span>)mem) <span style=color:#666>==</span> interesting_32[i] <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>*</span>((u32<span style=color:#666>*</span>)mem) <span style=color:#666>==</span> <span style=color:#00a000>SWAP32</span>(interesting_32[i])) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Reject anything that matches existing extras. Do a case-insensitive
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     match. We optimize by exploiting the fact that extras[] are sorted
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     by size. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> extras_cnt; i<span style=color:#666>++</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (extras[i].len <span style=color:#666>&gt;=</span> len) <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (; i <span style=color:#666>&lt;</span> extras_cnt <span style=color:#666>&amp;&amp;</span> extras[i].len <span style=color:#666>==</span> len; i<span style=color:#666>++</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>memcmp_nocase</span>(extras[i].data, mem, len)) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Last but not least, check a_extras[] for matches. There are no
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     guarantees of a particular sort order. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 与自动发现的 extra（即 a_extras 数组）对比，去重
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  auto_changed <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> a_extras_cnt; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (a_extras[i].len <span style=color:#666>==</span> len <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>memcmp_nocase</span>(a_extras[i].data, mem, len)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      a_extras[i].hit_cnt<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>goto</span> sort_a_extras;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* At this point, looks like we&#39;re dealing with a new entry. So, let&#39;s
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     append it if we have room. Otherwise, let&#39;s randomly evict some other
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     entry from the bottom half of the list. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若 a_extras 数量小于 500，则插入
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (a_extras_cnt <span style=color:#666>&lt;</span> MAX_AUTO_EXTRAS) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    a_extras <span style=color:#666>=</span> <span style=color:#00a000>ck_realloc_block</span>(a_extras, (a_extras_cnt <span style=color:#666>+</span> <span style=color:#666>1</span>) <span style=color:#666>*</span>
+</span></span><span style=display:flex><span>                                <span style=color:#a2f;font-weight:700>sizeof</span>(<span style=color:#a2f;font-weight:700>struct</span> extra_data));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    a_extras[a_extras_cnt].data <span style=color:#666>=</span> <span style=color:#00a000>ck_memdup</span>(mem, len);
+</span></span><span style=display:flex><span>    a_extras[a_extras_cnt].len  <span style=color:#666>=</span> len;
+</span></span><span style=display:flex><span>    a_extras_cnt<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 随机选一个 250 ~ 499 之间的 token，将其驱逐，替换为新来的 token
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    i <span style=color:#666>=</span> MAX_AUTO_EXTRAS <span style=color:#666>/</span> <span style=color:#666>2</span> <span style=color:#666>+</span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>UR</span>((MAX_AUTO_EXTRAS <span style=color:#666>+</span> <span style=color:#666>1</span>) <span style=color:#666>/</span> <span style=color:#666>2</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(a_extras[i].data);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    a_extras[i].data    <span style=color:#666>=</span> <span style=color:#00a000>ck_memdup</span>(mem, len);
+</span></span><span style=display:flex><span>    a_extras[i].len     <span style=color:#666>=</span> len;
+</span></span><span style=display:flex><span>    a_extras[i].hit_cnt <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>sort_a_extras</span>:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* First, sort all auto extras by use count, descending order. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>qsort</span>(a_extras, a_extras_cnt, <span style=color:#a2f;font-weight:700>sizeof</span>(<span style=color:#a2f;font-weight:700>struct</span> extra_data),
+</span></span><span style=display:flex><span>        compare_extras_use_d);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Then, sort the top USE_AUTO_EXTRAS entries by size. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>qsort</span>(a_extras, <span style=color:#00a000>MIN</span>(USE_AUTO_EXTRAS, a_extras_cnt),
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>sizeof</span>(<span style=color:#a2f;font-weight:700>struct</span> extra_data), compare_extras_len);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=pivot_inputs>pivot_inputs
+<a class=header-anchor href=#pivot_inputs></a></h1><ul><li>AFL 本身在 fuzz 过程中会涉及到很重的各种磁盘读取操作，如果输入输出在不同的路径下，会加重磁盘读取的一系列操作。这样做是为了减轻磁盘读取负担，也是为了加快 fuzz 的效率。而之所以设置成输入输出在不同的目录下，应该只是为了归档</li></ul><h1 id=load_extras>load_extras
+<a class=header-anchor href=#load_extras></a></h1><ul><li>主要功能从 extras 目录中读取 extras 并按大小对其进行排序，代码比较琐碎就不具体分析了</li></ul><h1 id=find_timeout>find_timeout
+<a class=header-anchor href=#find_timeout></a></h1><ul><li>若是 in-place resume（通过 &ldquo;-i -&rdquo; 选项指定），则继承上次 fuzz 的 exec_timeout</li></ul><h1 id=detect_file_args>detect_file_args
+<a class=header-anchor href=#detect_file_args></a></h1><ul><li>略</li></ul><h1 id=setup_stdio_file>setup_stdio_file
+<a class=header-anchor href=#setup_stdio_file></a></h1><ul><li>如果没有设置被fuzz的文件(没有用-f参数)才进入这个if语句，一般用不到</li></ul><h1 id=check_binary>check_binary
+<a class=header-anchor href=#check_binary></a></h1><ul><li>检查目标程序，看找不找得到、在不在 /tmp 等</li></ul></div><footer class=post-footer><div class=post-tags><a href=/tags/fuzz>Fuzz</a></div><div class=addthis_inline_share_toolbox style=text-align:center></div><hr><div class=reward-container><div><i class="fa-solid fa-mug-hot"></i>请我喝杯咖啡吧 ヾ(^▽^*)))</div><button>
+赞赏</button><div class=post-reward><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/ali-pay.png alt="f1ow - 支付宝">
+<span>支付宝</span></div><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/wechat-pay.png alt="f1ow - 微信">
+<span>微信</span></div></div></div><div class=post-copyright><img src=/imgs/cc/cc.svg width=75 height=75 align=right alt=共享知识><ul><li class=post-copyright-title><strong>文章标题：</strong>
+afl-fuzz源码分析上篇</li><li class=post-copyright-author><strong>本文作者： </strong>f1ow</li><li class=post-copyright-link><strong>本文链接：</strong>
+<a id=post-cr-link href=https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/ title=afl-fuzz源码分析上篇>https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/</a></li><li class=post-copyright-license><strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <i class="fab fa-fw fa-creative-commons"></i><a target=_blank href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh>BY-NC-SA</a> 许可协议。转载请注明出处！</li></ul></div><div class=post-nav><div class="post-nav-next post-nav-item"><a href=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/ rel=next title=afl-fuzz源码分析中篇><i class="fa fa-chevron-left"></i> afl-fuzz源码分析中篇</a></div><div class="post-nav-prev post-nav-item"><a href=/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/ rel=prev title=afl-gcc与afl-as源码阅读>afl-gcc与afl-as源码阅读
+<i class="fa fa-chevron-right"></i></a></div></div></footer></article></div></div></main><footer class=footer><div class=footer-inner><div class=copyright>&copy;
+<span itemprop=copyrightYear>2024 - 2025
+</span><span class=with-love><i class="fa fa-heart"></i>
+</span><span class=author itemprop=copyrightHolder>f1ow</span></div><div class=powered-by>由 <a href=https://gohugo.io title=0.126.1 target=_blank>Hugo</a> & <a href=https://github.com/hugo-next/hugo-theme-next title=4.6.3 target=_blank>Hugo NexT.Gemini</a> 强力驱动</div><div class=beian><a href=https://beian.miit.gov.cn target=_blank>鄂ICP备 20240001号</a>
+<img src=/imgs/gongan.png alt=鄂公网安备>
+<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=42010002002000" target=_blank>鄂公网安备 42010002002000 号</a></div><div class=vendors-list><a target=_blank href=https://vercel.com title=Vercel><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/vercel.svg alt=Vercel>
+</a><a target=_blank href=https://upyun.com title=又拍云><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/upyun.png alt=又拍云>
+</a><a target=_blank href=https://github.com title=Github><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/github.svg alt=Github>
+</a><span>提供CDN/云资源支持</span></div></div></footer><script type=text/javascript src=https://zp9080.github.io/3rd/animejs/3.2.2/anime.min.js crossorigin=anonymous defer></script><script type=text/javascript src=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.js crossorigin=anonymous defer></script><script class=next-config data-name=main type=application/json>{"bookmark":{"color":"#222","enable":true,"save":"manual"},"copybtn":true,"darkmode":false,"giscus":{"cfg":{"category":"Comments","categoryid":null,"emit":false,"inputposition":"top","mapping":"title","reactions":false,"repo":"username/repo-name","repoid":null,"theme":"preferred_color_scheme"},"js":"https://giscus.app/client.js"},"hostname":"https://zp9080.github.io/","i18n":{"ds_day":" 天前","ds_days":" 天 ","ds_hour":" 小时前","ds_hours":" 小时 ","ds_just":"刚刚","ds_min":" 分钟前","ds_mins":" 分钟","ds_month":" 个月前","ds_years":" 年 ","empty":"没有找到任何搜索结果：${query}","hits":"找到 ${hits} 个搜索结果","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","placeholder":"搜索..."},"lang":"zh-CN","lazyload":false,"localSearch":{"enable":true,"limit":1e3,"path":"/searchindexes.xml","preload":false,"topnperarticle":-1,"trigger":"auto","unescape":false},"motion":{"async":true,"enable":true,"transition":{"collheader":"fadeInLeft","postblock":"fadeIn","postbody":"fadeInDown","postheader":"fadeInDown","sidebar":"fadeInUp"}},"postmeta":{"comments":{"enable":true,"plugin":"waline"},"views":{"enable":true,"plugin":"busuanzi"}},"root":"/","scheme":"Gemini","sidebar":{"display":"post","offset":12,"padding":18,"position":"left","width":256},"vendor":{"plugins":"local","router":{"name":"local","type":"modern","url":"https://zp9080.github.io/3rd"}},"version":"4.6.3","waline":{"cfg":{"emoji":false,"imguploader":false,"placeholder":"请文明发言哟 ヾ(≧▽≦*)o","reaction":true,"reactiontext":["点赞","踩一下","得意","不屑","尴尬","睡觉"],"reactiontitle":"你认为这篇文章怎么样？","requiredmeta":["nick","mail"],"serverurl":null,"sofa":"快来发表你的意见吧 (≧∀≦)ゞ","wordlimit":200},"css":{"alias":"@waline/client","file":"dist/waline.css","name":"waline","version":"2.15.8"},"js":{"alias":"@waline/client","file":"dist/waline.js","name":"waline","version":"2.15.8"}}}</script><script type=text/javascript src=/js/main.min.befa9b7d22ec90da86c74c5dbff5ee42c12e9fc6d6f4448bfcc596cc329b19e8.js defer></script></body></html>

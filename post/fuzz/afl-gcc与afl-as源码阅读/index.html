@@ -1,0 +1,988 @@
+<!doctype html><html lang=zh-CN data-theme=light><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><meta name=theme-color content="#222" media="(prefers-color-scheme: light)"><meta name=generator content="Hugo 0.126.1"><link rel="shortcut icon" type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/png sizes=16x16 href=/imgs/icons/favicon_16x16_next.png><link rel=icon type=image/png sizes=32x32 href=/imgs/icons/favicon_32_32_next.png><link rel=apple-touch-icon sizes=180x180 href=/imgs/icons/apple_touch_icon_next.png><meta itemprop=name content="afl-gcc与afl-as源码阅读"><meta itemprop=description content="集中一点,登峰造极"><meta name=description content="集中一点,登峰造极"><meta itemprop=datePublished zgotmplz><meta itemprop=dateModified zgotmplz><meta itemprop=image content="https://zp9080.github.io/imgs/author.png"><meta itemprop=keywords content="Fuzz"><meta property="og:type" content="article"><meta property="og:title" content="afl-gcc与afl-as源码阅读"><meta property="og:description" content="集中一点,登峰造极"><meta property="og:image" content="/imgs/author.png"><meta property="og:image:width" content="312"><meta property="og:image:height" content="312"><meta property="og:image:type" content="image/jpeg/png/svg/jpg"><meta property="og:url" content="https://zp9080.github.io/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/"><meta property="og:site_name" content="f1ow-blog"><meta property="og:locale" content="zh-CN"><meta property="article:author" content="f1ow"><meta property="article:published_time" content="2024-08-31 10:15:00 +0800 CST"><meta property="article:modified_time" content="2024-08-31 10:15:00 +0800 CST"><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/font-awesome/6.6.0/css/all.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/animate.css/4.1.1/animate.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.css><link rel=stylesheet href=/css/main.min.bfbac3431de920c11b5b1cafa45029ea1bc93d5d3da50fed4ab6924b4c250360.css><script type=text/javascript>(function(){localDB={set:function(e,t,n){if(n===0)return;const s=new Date,o=n*864e5,i={value:t,expiry:s.getTime()+o};localStorage.setItem(e,JSON.stringify(i))},get:function(e){const t=localStorage.getItem(e);if(!t)return void 0;const n=JSON.parse(t),s=new Date;return s.getTime()>n.expiry?(localStorage.removeItem(e),void 0):n.value}},theme={active:function(){const e=localDB.get("theme");if(e==null)return;theme.toggle(e),window.matchMedia("(prefers-color-scheme: dark)").addListener(function(e){theme.toggle(e.matches?"dark":"light")})},toggle:function(e){document.documentElement.setAttribute("data-theme",e),localDB.set("theme",e,2);const t=document.querySelector("iframe.giscus-frame");if(t){const n={setConfig:{theme:e}};t.contentWindow.postMessage({giscus:n},"https://giscus.app")}}},theme.active()})(window)</script><script class=next-config data-name=page type=application/json>{"comments":false,"isHome":false,"isPage":true,"path":"afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB","permalink":"https://zp9080.github.io/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/","title":"afl-gcc与afl-as源码阅读","waline":{"js":[{"alias":"@waline/client","alias_name":"waline","file":"dist/pageview.js","name":"pageview","version":"2.15.8"},{"alias":"@waline/client","alias_name":"waline","file":"dist/comment.js","name":"comment","version":"2.15.8"}]}}</script><script type=text/javascript>document.addEventListener("DOMContentLoaded",()=>{var e=document.createElement("script");e.charset="UTF-8",e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.async=!1,e.defer=!0,document.head.appendChild(e),e.onload=function(){NexT.utils.fmtBusuanzi()}})</script><title>afl-gcc与afl-as源码阅读 - f1ow-blog</title><noscript><link rel=stylesheet href=/css/noscript.css></noscript></head><body itemscope itemtype=http://schema.org/WebPage class=use-motion><div class=headband></div><div class=overlay></div><main class=main><header class=header itemscope itemtype=http://schema.org/WPHeader><div class=header-inner><div class=site-brand-container><div class=site-nav-toggle><div class=toggle aria-label role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div></div><div class=site-meta><a href=/ class=brand rel=start><i class=logo-line></i><h1 class=site-title>f1ow-blog</h1><i class=logo-line></i></a><p class=site-subtitle itemprop=description>集中一点,登峰造极</p></div><div class=site-nav-right><div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div></div></div><nav class=site-nav><ul class="main-menu menu"><li class="menu-item menu-item-home"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-home hvr-icon"></i>首页</a></li><li class="menu-item menu-item-about"><a href=/about/ class=hvr-icon-pulse rel=section><i class="fa fa-user hvr-icon"></i>关于</a></li><li class="menu-item menu-item-archives"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-archive hvr-icon"></i>归档
+<span class=badge>207</span></a></li><li class="menu-item menu-item-categories"><a href=/categories/ class=hvr-icon-pulse rel=section><i class="fa fa-categories hvr-icon"></i>分类</a></li><li class="menu-item menu-item-tags"><a href=/tags/ class=hvr-icon-pulse rel=section><i class="fa fa-tags hvr-icon"></i>标签</a></li><li class="menu-item menu-item-search"><a role=button class="popup-trigger hvr-icon-pulse"><i class="fa fa-search fa-fw hvr-icon"></i>搜索</a></li></ul></nav><div class=search-pop-overlay><div class="popup search-popup"><div class=search-header><span class=search-icon><i class="fa fa-search"></i></span><div class=search-input-container><input autocomplete=off autocapitalize=off maxlength=80 placeholder=搜索... spellcheck=false type=search class=search-input></div><span class=popup-btn-close role=button><i class="fa fa-times-circle"></i></span></div><div class="search-result-container no-result"><div class=search-result-icon><i class="fa fa-spinner fa-pulse fa-5x"></i></div></div></div></div></div><div class="toggle sidebar-toggle" role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div><aside class=sidebar><div class="sidebar-inner sidebar-nav-active sidebar-toc-active"><ul class=sidebar-nav><li class=sidebar-nav-toc>文章目录</li><li class=sidebar-nav-overview>站点概览</li></ul><div class=sidebar-panel-container><div class="post-toc-wrap sidebar-panel"><div class="post-toc animated"><nav id=TableOfContents><ul><li><a href=#afl-gcc>afl-gcc</a><ul><li><a href=#main>main</a></li><li><a href=#find_as>find_as</a></li><li><a href=#edit_params>edit_params</a></li></ul></li><li><a href=#afl-as>afl-as</a><ul><li><a href=#相关全局变量>相关全局变量</a></li><li><a href=#main-1>main</a></li><li><a href=#edit_params-1>edit_params</a></li><li><a href=#add_instrumentation>add_instrumentation</a></li></ul></li><li><a href=#trampoline_fmt_64>trampoline_fmt_64</a></li><li><a href=#main-payload>main payload</a><ul><li><a href=#主要逻辑>主要逻辑</a></li><li><a href=#一些思考>一些思考</a><ul><li><a href=#__afl_shm_id这个环境变量什么时候创建的>__AFL_SHM_ID这个环境变量什么时候创建的？</a></li><li><a href=#为什么要用fork_server>为什么要用fork_server?</a></li></ul></li></ul></li></ul></nav></div></div><div class="site-overview-wrap sidebar-panel"><div class="site-author site-overview-item animated" itemprop=author itemscope itemtype=http://schema.org/Person><img class=site-author-image itemprop=image alt=f1ow src=/imgs/img-lazy-loading.gif data-src=/imgs/author.png><p class=site-author-name itemprop=name>f1ow</p><div class=site-description itemprop=description>集中一点,登峰造极</div></div><div class="site-state-wrap site-overview-item animated"><nav class=site-state><div class="site-state-item site-state-posts"><a href=/archives/><span class=site-state-item-count>207</span>
+<span class=site-state-item-name>日志</span></a></div><div class="site-state-item site-state-categories"><a href=/categories/><span class=site-state-item-count>38</span>
+<span class=site-state-item-name>分类</span></a></div><div class="site-state-item site-state-tags"><a href=/tags/><span class=site-state-item-count>80</span>
+<span class=site-state-item-name>标签</span></a></div></nav></div><div class="links-of-social site-overview-item animated"><span class=links-of-social-item><a href=https://github.com/zp9080 title="Github → https://github.com/zp9080" rel=noopener class=hvr-icon-pulse target=_blank><i class="fab fa-github fa-fw hvr-icon"></i>
+Github</a></span></div><div class="cc-license animated" itemprop=license><a href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh class=cc-opacity rel=noopener target=_blank title=共享知识><img src=/imgs/img-lazy-loading.gif data-src=/imgs/cc/big/by_nc_sa.svg alt=共享知识></a></div><div class="links-of-blogroll site-overview-item animated"><div class=links-of-blogroll-title><i class="fa fa-globe fa-fw"></i>
+友情链接</div><ul class=links-of-blogroll-list><li class=links-of-blogroll-item><a href=https://v3rdant.cn/ title=https://v3rdant.cn/ target=_blank>v3rdant</a></li><li class=links-of-blogroll-item><a href=https://juicymio.github.io/ title=https://juicymio.github.io/ target=_blank>juicymio</a></li><li class=links-of-blogroll-item><a href=https://ka7arotto.github.io/ title=https://ka7arotto.github.io/ target=_blank>Goku</a></li></ul></div></div></div></div><div id=siteinfo-card-widget class=sidebar-card-widget><div class=item-headline><i class="fas fa-chart-line"></i>
+<span>网站资讯</span></div><div class=siteinfo><div class=siteinfo-item><div class=item-name><i class="fa-solid fa-calendar-check"></i>已运行：</div><div class=item-count id=runTimes data-publishdate=2024-07-28T00:00:00+00:00></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-user"></i>总访客数：</div><div class=item-count id=busuanzi_value_site_uv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-eye"></i>页面浏览：</div><div class=item-count id=busuanzi_value_site_pv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-font"></i>总字数：</div><div class=item-count id=wordsCount data-count=273686></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-mug-hot"></i>阅读约：</div><div class=item-count id=readTimes data-times=660></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-clock-rotate-left"></i>最后更新于：</div><div class=item-count id=last-push-date data-lastpushdate=2025-02-27T17:57:37+08:00></div></div></div></div></aside><div class=sidebar-dimmer></div></header><div class=tool-buttons><div id=toggle-theme class=button title=深浅模式切换><i class="fas fa-adjust"></i></div><div class=back-to-top role=button title=返回顶部><i class="fa fa-arrow-up"></i>
+<span>0%</span></div></div><div class=reading-progress-bar></div><a role=button class="book-mark-link book-mark-link-fixed"></a><a href=https://github.com/zp9080 rel="noopener external nofollow noreferrer" target=_blank title="Follow me on GitHub" class="exturl github-corner"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0 0 115 115h15l12 27L250 250V0z"/><path d="M128.3 109C113.8 99.7 119 89.6 119 89.6 122 82.7 120.5 78.6 120.5 78.6 119.2 72 123.4 76.3 123.4 76.3 127.3 80.9 125.5 87.3 125.5 87.3 122.9 97.6 130.6 101.9 134.4 103.2" fill="currentcolor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115 115C114.9 115.1 118.7 116.5 119.8 115.4l13.9-13.8C136.9 99.2 139.9 98.4 142.2 98.6 133.8 88 127.5 74.4 143.8 58 148.5 53.4 154 51.2 159.7 51 160.3 49.4 163.2 43.6 171.4 40.1 171.4 40.1 176.1 42.5 178.8 56.2 183.1 58.6 187.2 61.8 190.9 65.4 194.5 69 197.7 73.2 200.1 77.6 213.8 80.2 216.3 84.9 216.3 84.9 212.7 93.1 206.9 96 205.4 96.6 205.1 102.4 203 107.8 198.3 112.5 181.9 128.9 168.3 122.5 157.7 114.1 157.9 116.9 156.7 120.9 152.7 124.9L141 136.5C139.8 137.7 141.6 141.9 141.8 141.8z" fill="currentcolor" class="octo-body"/></svg>
+</a><script type=text/javascript src=//sidecar.gitter.im/dist/sidecar.v1.js async></script><script type=text/javascript>((window.gitter={}).chat={}).options={room:"hugo-next/community"}</script><noscript><div class=noscript-warning>Theme NexT works best with JavaScript enabled</div></noscript><div class="main-inner post posts-expand"><div class=post-block><article itemscope itemtype=http://schema.org/Article class=post-content lang><link itemprop=mainEntityOfPage href=https://zp9080.github.io/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/><span hidden itemprop=author itemscope itemtype=http://schema.org/Person><meta itemprop=image content="/imgs/author.png"><meta itemprop=name content="f1ow"></span><span hidden itemprop=publisher itemscope itemtype=http://schema.org/Organization><meta itemprop=name content="f1ow"><meta itemprop=description content="集中一点,登峰造极"></span><span hidden itemprop=post itemscope itemtype=http://schema.org/CreativeWork><meta itemprop=name content="afl-gcc与afl-as源码阅读"><meta itemprop=description content></span><header class=post-header><h1 class=post-title itemprop="name headline">afl-gcc与afl-as源码阅读
+<a href=https://github.com/user-name/repo-name/tree/branch-name/subdirectory-name/post/Fuzz/afl-gcc%e4%b8%8eafl-as%e6%ba%90%e7%a0%81%e9%98%85%e8%af%bb.md rel="noopener external nofollow noreferrer" target=_blank class="exturl post-edit-link" title=编辑><i class="fa fa-pen-nib"></i></a></h1><div class=post-meta-container><div class=post-meta-items><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-calendar"></i>
+</span><span class=post-meta-item-text title=发表于>发表于：
+</span><time title="创建时间：2024-08-31 10:15:00 +0800 CST" itemprop="dateCreated datePublished" datetime="2024-08-31 10:15:00 +0800 CST">2024-08-31
+</time></span><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-folder-open"></i>
+</span><span class=post-meta-item-text title=分类于>分类于：
+</span><span itemprop=about itemscope itemtype=http://schema.org/Thing><a href=/categories/fuzz itemprop=url rel=index><span itemprop=name>AEG/Fuzz</span></a></span></span></div><div class=post-meta-items><span class=post-meta-item title=字数><span class=post-meta-item-icon><i class="fas fa-solid fa-file-word"></i>
+</span><span class=post-meta-item-text>字数：</span>
+<span>5789</span>
+</span><span class=post-meta-item title=阅读><span class=post-meta-item-icon><i class="fas fa-solid fa-clock"></i>
+</span><span class=post-meta-item-text>阅读：&ap;</span>
+<span>12分钟</span>
+</span><span class=post-meta-item title=浏览><span class=post-meta-item-icon><i class="fas fa-solid fa-eye"></i>
+</span><span class=post-meta-item-text>浏览：
+</span><span id=busuanzi_value_page_pv data-path=/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/><i class="fa fa-sync fa-spin"></i></span></span></div></div></header><div class="post-body autonumber" itemprop=articleBody><h1 id=afl-gcc>afl-gcc
+<a class=header-anchor href=#afl-gcc></a></h1><ul><li>afl-gcc.c比较简单，主要就是设置一些编译时的参数，最重要的是指定afl-as作为汇编器，进行代码插桩</li></ul><h2 id=main>main
+<a class=header-anchor href=#main></a></h2><p>先看main函数，调用 find_as(argv[0]) 寻找 afl-as ；然后修改编译器参数；最后用execvp执行</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#0b0;font-weight:700>int</span> <span style=color:#00a000>main</span>(<span style=color:#0b0;font-weight:700>int</span> argc, <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>isatty</span>(<span style=color:#666>2</span>) <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_QUIET&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>SAYF</span>(cCYA <span style=color:#b44>&#34;afl-cc &#34;</span> cBRI VERSION cRST <span style=color:#b44>&#34; by &lt;lcamtuf@google.com&gt;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> be_quiet <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (argc <span style=color:#666>&lt;</span> <span style=color:#666>2</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;This is a helper application for afl-fuzz. It serves as a drop-in replacement</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;for gcc or clang, letting you recompile third-party code with the required</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;runtime instrumentation. A common use pattern would be one of the following:</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;  CC=%s/afl-gcc ./configure</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;  CXX=%s/afl-g++ ./configure</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;You can specify custom next-stage toolchain via AFL_CC, AFL_CXX, and AFL_AS.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;Setting AFL_HARDEN enables hardening optimizations in the compiled code.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>,
+</span></span><span style=display:flex><span>         BIN_PATH, BIN_PATH);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>exit</span>(<span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>find_as</span>(argv[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>edit_params</span>(argc, argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>execvp</span>(cc_params[<span style=color:#666>0</span>], (<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span>)cc_params);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Oops, failed to execute &#39;%s&#39; - check your PATH&#34;</span>, cc_params[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=find_as>find_as
+<a class=header-anchor href=#find_as></a></h2><p>这个函数主要目的是看as这个文件是否存在，不存在就报错</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>find_as</span>(u8<span style=color:#666>*</span> argv0) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8 <span style=color:#666>*</span>afl_path <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_PATH&#34;</span>);
+</span></span><span style=display:flex><span>  u8 <span style=color:#666>*</span>slash, <span style=color:#666>*</span>tmp;
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//先看环境变量有没有设置afl_path
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (afl_path) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/as&#34;</span>, afl_path);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>access</span>(tmp, X_OK)) {
+</span></span><span style=display:flex><span>      as_path <span style=color:#666>=</span> afl_path;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//比如argv[0]为/home/zp9080/afl/afl-gcc，那么最后dir就是/home/zp9080/afl/
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  slash <span style=color:#666>=</span> <span style=color:#00a000>strrchr</span>(argv0, <span style=color:#b44>&#39;/&#39;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (slash) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8 <span style=color:#666>*</span>dir;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#666>*</span>slash <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>    dir <span style=color:#666>=</span> <span style=color:#00a000>ck_strdup</span>(argv0);
+</span></span><span style=display:flex><span>    <span style=color:#666>*</span>slash <span style=color:#666>=</span> <span style=color:#b44>&#39;/&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    tmp <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/afl-as&#34;</span>, dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>access</span>(tmp, X_OK)) {
+</span></span><span style=display:flex><span>      as_path <span style=color:#666>=</span> dir;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(tmp);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>access</span>(AFL_PATH <span style=color:#b44>&#34;/as&#34;</span>, X_OK)) {
+</span></span><span style=display:flex><span>    as_path <span style=color:#666>=</span> AFL_PATH;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Unable to find AFL wrapper binary for &#39;as&#39;. Please set AFL_PATH&#34;</span>);
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=edit_params>edit_params
+<a class=header-anchor href=#edit_params></a></h2><ul><li>主要目的是设置编译器参数</li><li>先判断是否是afl-clang或者afl-clang++或者afl-g++或者afl-gcj,如果都不是默认使用afl-gcc，设置cc_params[0],这个也是最后要使用的编译器</li><li>其余情况都直接把argv中的参数加到cc_params这个字符串数组中，作为编译器参数</li><li>最重要的是-B选项指定as（汇编器），as_path是由find_as这个函数设置的</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>-integrated-as 和 -pipe 开关会被忽略。
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>-B 参数会被覆盖为 as_path 。根据 gcc 文档：This option specifies where to find the executables, libraries, include files, and data files of the compiler itself.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>如果是 clang 模式，则打开 -no-integrated-as 开关。
+</span></span><span style=display:flex><span>如果 AFL_HARDEN 打开，则设置 -fstack-protector-all 和 -D_FORTIFY_SOURCE=2 。
+</span></span><span style=display:flex><span>若传入的编译参数中本来就有 -fsanitize=address 或 -fsanitize=memory，则设置环境变量 AFL_USE_ASAN 为 1；
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>否则执行以下步骤：
+</span></span><span style=display:flex><span>如果 AFL_USE_ASAN 打开，则设置 -U_FORTIFY_SOURCE 和 -fsanitize=address
+</span></span><span style=display:flex><span>如果 AFL_USE_MSAN 打开，则设置 -U_FORTIFY_SOURCE 和 -fsanitize=memory
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>默认情况下（未设置 AFL_DONT_OPTIMIZE 环境变量），会加入以下优化开关：
+</span></span><span style=display:flex><span>-g -O3 -funroll-loops -D__AFL_COMPILER=1 -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1
+</span></span><span style=display:flex><span>　　如果 AFL_NO_BUILTIN 环境变量被打开，则加入以下开关：
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>-fno-builtin-strcmp
+</span></span><span style=display:flex><span>-fno-builtin-strncmp
+</span></span><span style=display:flex><span>-fno-builtin-strcasecmp
+</span></span><span style=display:flex><span>-fno-builtin-strncasecmp
+</span></span><span style=display:flex><span>-fno-builtin-memcmp
+</span></span><span style=display:flex><span>-fno-builtin-strstr
+</span></span><span style=display:flex><span>-fno-builtin-strcasestr
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Copy argv to cc_params, making the necessary edits. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>edit_params</span>(u32 argc, <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8 fortify_set <span style=color:#666>=</span> <span style=color:#666>0</span>, asan_set <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u8 <span style=color:#666>*</span>name;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#if defined(__FreeBSD__) &amp;&amp; defined(__x86_64__)
+</span></span></span><span style=display:flex><span><span style=color:#080></span>  u8 m32_set <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span><span style=color:#080>#endif
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  cc_params <span style=color:#666>=</span> <span style=color:#00a000>ck_alloc</span>((argc <span style=color:#666>+</span> <span style=color:#666>128</span>) <span style=color:#666>*</span> <span style=color:#a2f;font-weight:700>sizeof</span>(u8<span style=color:#666>*</span>));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  name <span style=color:#666>=</span> <span style=color:#00a000>strrchr</span>(argv[<span style=color:#666>0</span>], <span style=color:#b44>&#39;/&#39;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>name) name <span style=color:#666>=</span> argv[<span style=color:#666>0</span>]; <span style=color:#a2f;font-weight:700>else</span> name<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//先判断是否是afl-clang或者afl-clang++或者afl-g++或者afl-gcj,如果都不是默认使用afl-gcc，设置cc_params[0],这个也是最后要使用的编译器
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(name, <span style=color:#b44>&#34;afl-clang&#34;</span>, <span style=color:#666>9</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    clang_mode <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setenv</span>(CLANG_ENV_VAR, <span style=color:#b44>&#34;1&#34;</span>, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(name, <span style=color:#b44>&#34;afl-clang++&#34;</span>)) {
+</span></span><span style=display:flex><span>      u8<span style=color:#666>*</span> alt_cxx <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CXX&#34;</span>);
+</span></span><span style=display:flex><span>      cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> alt_cxx <span style=color:#666>?</span> <span style=color:#a0a000>alt_cxx</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;clang++&#34;</span>;
+</span></span><span style=display:flex><span>    } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>      u8<span style=color:#666>*</span> alt_cc <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CC&#34;</span>);
+</span></span><span style=display:flex><span>      cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> alt_cc <span style=color:#666>?</span> <span style=color:#a0a000>alt_cc</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;clang&#34;</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* With GCJ and Eclipse installed, you can actually compile Java! The
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       instrumentation will work (amazingly). Alas, unhandled exceptions do
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       not call abort(), so afl-fuzz would need to be modified to equate
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       non-zero exit codes with crash conditions when working with Java
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       binaries. Meh. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(name, <span style=color:#b44>&#34;afl-g++&#34;</span>)) cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CXX&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(name, <span style=color:#b44>&#34;afl-gcj&#34;</span>)) cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_GCJ&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span> cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CC&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>cc_params[<span style=color:#666>0</span>]) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;On Apple systems, &#39;gcc&#39; is usually just a wrapper for clang. Please use the</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;    &#39;afl-clang&#39; utility instead of &#39;afl-gcc&#39;. If you really have GCC installed,</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>           <span style=color:#b44>&#34;    set AFL_CC or AFL_CXX to specify the correct path to that compiler.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;AFL_CC or AFL_CXX required on MacOS X&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#else
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(name, <span style=color:#b44>&#34;afl-g++&#34;</span>)) {
+</span></span><span style=display:flex><span>      u8<span style=color:#666>*</span> alt_cxx <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CXX&#34;</span>);
+</span></span><span style=display:flex><span>      cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> alt_cxx <span style=color:#666>?</span> <span style=color:#a0a000>alt_cxx</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;g++&#34;</span>;
+</span></span><span style=display:flex><span>    } <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(name, <span style=color:#b44>&#34;afl-gcj&#34;</span>)) {
+</span></span><span style=display:flex><span>      u8<span style=color:#666>*</span> alt_cc <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_GCJ&#34;</span>);
+</span></span><span style=display:flex><span>      cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> alt_cc <span style=color:#666>?</span> <span style=color:#a0a000>alt_cc</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;gcj&#34;</span>;
+</span></span><span style=display:flex><span>    } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>      u8<span style=color:#666>*</span> alt_cc <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CC&#34;</span>);
+</span></span><span style=display:flex><span>      cc_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> alt_cc <span style=color:#666>?</span> <span style=color:#a0a000>alt_cc</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;gcc&#34;</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (<span style=color:#666>--</span>argc) {
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> cur <span style=color:#666>=</span> <span style=color:#666>*</span>(<span style=color:#666>++</span>argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(cur, <span style=color:#b44>&#34;-B&#34;</span>, <span style=color:#666>2</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>be_quiet) <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;-B is already set, overriding&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>cur[<span style=color:#666>2</span>] <span style=color:#666>&amp;&amp;</span> argc <span style=color:#666>&gt;</span> <span style=color:#666>1</span>) { argc<span style=color:#666>--</span>; argv<span style=color:#666>++</span>; }
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(cur, <span style=color:#b44>&#34;-integrated-as&#34;</span>)) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(cur, <span style=color:#b44>&#34;-pipe&#34;</span>)) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#if defined(__FreeBSD__) &amp;&amp; defined(__x86_64__)
+</span></span></span><span style=display:flex><span><span style=color:#080></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(cur, <span style=color:#b44>&#34;-m32&#34;</span>)) m32_set <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span><span style=color:#080>#endif
+</span></span></span><span style=display:flex><span><span style=color:#080></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(cur, <span style=color:#b44>&#34;-fsanitize=address&#34;</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>        <span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(cur, <span style=color:#b44>&#34;-fsanitize=memory&#34;</span>)) asan_set <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(cur, <span style=color:#b44>&#34;FORTIFY_SOURCE&#34;</span>)) fortify_set <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//其余情况都直接把argv中的参数加到cc_params这个字符串数组中，作为编译器参数
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> cur;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//这个地方很重要，-B选项指定as（汇编器），as_path是由find_as这个函数设置的
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-B&#34;</span>;
+</span></span><span style=display:flex><span>  cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> as_path;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (clang_mode)
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-no-integrated-as&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HARDEN&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fstack-protector-all&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>fortify_set)
+</span></span><span style=display:flex><span>      cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-D_FORTIFY_SOURCE=2&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (asan_set) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Pass this on to afl-as to adjust map density. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setenv</span>(<span style=color:#b44>&#34;AFL_USE_ASAN&#34;</span>, <span style=color:#b44>&#34;1&#34;</span>, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_ASAN&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_MSAN&#34;</span>))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;ASAN and MSAN are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HARDEN&#34;</span>))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;ASAN and AFL_HARDEN are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-U_FORTIFY_SOURCE&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fsanitize=address&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_MSAN&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_ASAN&#34;</span>))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;ASAN and MSAN are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HARDEN&#34;</span>))
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;MSAN and AFL_HARDEN are mutually exclusive&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-U_FORTIFY_SOURCE&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fsanitize=memory&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_DONT_OPTIMIZE&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#if defined(__FreeBSD__) &amp;&amp; defined(__x86_64__)
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* On 64-bit FreeBSD systems, clang -g -m32 is broken, but -m32 itself
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       works OK. This has nothing to do with us, but let&#39;s avoid triggering
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       that bug. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>clang_mode <span style=color:#666>||</span> <span style=color:#666>!</span>m32_set)
+</span></span><span style=display:flex><span>      cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-g&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#else
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>      cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-g&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-O3&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-funroll-loops&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Two indicators that you&#39;re building for fuzzing; one of them is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       AFL-specific, the other is shared with libfuzzer. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-D__AFL_COMPILER=1&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_NO_BUILTIN&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strcmp&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strncmp&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strcasecmp&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strncasecmp&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-memcmp&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strstr&#34;</span>;
+</span></span><span style=display:flex><span>    cc_params[cc_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-fno-builtin-strcasestr&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  cc_params[cc_par_cnt] <span style=color:#666>=</span> <span style=color:#a2f>NULL</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=afl-as>afl-as
+<a class=header-anchor href=#afl-as></a></h1><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>1.初始化随机数种子
+</span></span><span style=display:flex><span>2.修改 as 参数 (edit_params函数)
+</span></span><span style=display:flex><span>3.在汇编指令序列上插桩,并写回/tmp/.afl-pid-timestamp.s文件 (add_instrumentation函数)  
+</span></span><span style=display:flex><span>4.调用 as 生成可执行文件，并清理现场
+</span></span></code></pre></div><h2 id=相关全局变量>相关全局变量
+<a class=header-anchor href=#%e7%9b%b8%e5%85%b3%e5%85%a8%e5%b1%80%e5%8f%98%e9%87%8f></a></h2><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8<span style=color:#666>**</span> as_params;          <span style=color:#080;font-style:italic>/* Parameters passed to the real &#39;as&#39;   */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8<span style=color:#666>*</span>  input_file;         <span style=color:#080;font-style:italic>/* Originally specified input file      */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8<span style=color:#666>*</span>  modified_file;      <span style=color:#080;font-style:italic>/* Instrumented file for the real &#39;as&#39;  */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8   be_quiet,           <span style=color:#080;font-style:italic>/* Quiet mode (no stderr output)        */</span>
+</span></span><span style=display:flex><span>            clang_mode,         <span style=color:#080;font-style:italic>/* Running in clang mode?               */</span>
+</span></span><span style=display:flex><span>            pass_thru,          <span style=color:#080;font-style:italic>/* Just pass data through?              */</span>
+</span></span><span style=display:flex><span>            just_version,       <span style=color:#080;font-style:italic>/* Just show version?                   */</span>
+</span></span><span style=display:flex><span>            sanitizer;          <span style=color:#080;font-style:italic>/* Using ASAN / MSAN                    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32  inst_ratio <span style=color:#666>=</span> <span style=color:#666>100</span>,   <span style=color:#080;font-style:italic>/* Instrumentation probability (%)      */</span>
+</span></span><span style=display:flex><span>            as_par_cnt <span style=color:#666>=</span> <span style=color:#666>1</span>;     <span style=color:#080;font-style:italic>/* Number of params to &#39;as&#39;             */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* If we don&#39;t find --32 or --64 in the command line, default to 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   instrumentation for whichever mode we were compiled with. This is not
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   perfect, but should do the trick for almost all use cases. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef WORD_SIZE_64
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8   use_64bit <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#else
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8   use_64bit <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span></code></pre></div><h2 id=main-1>main
+<a class=header-anchor href=#main-1></a></h2><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#0b0;font-weight:700>int</span> <span style=color:#00a000>main</span>(<span style=color:#0b0;font-weight:700>int</span> argc, <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  s32 pid;
+</span></span><span style=display:flex><span>  u32 rand_seed;
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>int</span> status;
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//从环境变量读取设置的
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  u8<span style=color:#666>*</span> inst_ratio_str <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_INST_RATIO&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> timeval tv;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> timezone tz;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  clang_mode <span style=color:#666>=</span> <span style=color:#666>!!</span><span style=color:#00a000>getenv</span>(CLANG_ENV_VAR);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>isatty</span>(<span style=color:#666>2</span>) <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_QUIET&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>SAYF</span>(cCYA <span style=color:#b44>&#34;afl-as &#34;</span> cBRI VERSION cRST <span style=color:#b44>&#34; by &lt;lcamtuf@google.com&gt;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> be_quiet <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (argc <span style=color:#666>&lt;</span> <span style=color:#666>2</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;This is a helper application for afl-fuzz. It is a wrapper around GNU &#39;as&#39;,</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;executed by the toolchain whenever using afl-gcc or afl-clang. You probably</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;don&#39;t want to run this program directly.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;Rarely, when dealing with extremely complex projects, it may be advisable to</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;set AFL_INST_RATIO to a value less than 100 in order to reduce the odds of</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>         <span style=color:#b44>&#34;instrumenting every discovered branch.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>exit</span>(<span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//获取时间并设置随机数种子
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>gettimeofday</span>(<span style=color:#666>&amp;</span>tv, <span style=color:#666>&amp;</span>tz);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  rand_seed <span style=color:#666>=</span> tv.tv_sec <span style=color:#666>^</span> tv.tv_usec <span style=color:#666>^</span> <span style=color:#00a000>getpid</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>srandom</span>(rand_seed);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>edit_params</span>(argc, argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (inst_ratio_str) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>sscanf</span>(inst_ratio_str, <span style=color:#b44>&#34;%u&#34;</span>, <span style=color:#666>&amp;</span>inst_ratio) <span style=color:#666>!=</span> <span style=color:#666>1</span> <span style=color:#666>||</span> inst_ratio <span style=color:#666>&gt;</span> <span style=color:#666>100</span>) 
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Bad value of AFL_INST_RATIO (must be between 0 and 100)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(AS_LOOP_ENV_VAR))
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Endless loop when calling &#39;as&#39; (remove &#39;.&#39; from your PATH)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>setenv</span>(AS_LOOP_ENV_VAR, <span style=color:#b44>&#34;1&#34;</span>, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* When compiling with ASAN, we don&#39;t have a particularly elegant way to skip
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     ASAN-specific branches. But we can probabilistically compensate for
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     that... */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_ASAN&#34;</span>) <span style=color:#666>||</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_USE_MSAN&#34;</span>)) {
+</span></span><span style=display:flex><span>    sanitizer <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    inst_ratio <span style=color:#666>/=</span> <span style=color:#666>3</span>;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>just_version) <span style=color:#00a000>add_instrumentation</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>(pid <span style=color:#666>=</span> <span style=color:#00a000>fork</span>())) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>execvp</span>(as_params[<span style=color:#666>0</span>], (<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span>)as_params);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Oops, failed to execute &#39;%s&#39; - check your PATH&#34;</span>, as_params[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (pid <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;fork() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>waitpid</span>(pid, <span style=color:#666>&amp;</span>status, <span style=color:#666>0</span>) <span style=color:#666>&lt;=</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;waitpid() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_KEEP_ASSEMBLY&#34;</span>)) <span style=color:#00a000>unlink</span>(modified_file);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>exit</span>(<span style=color:#00a000>WEXITSTATUS</span>(status));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=edit_params-1>edit_params
+<a class=header-anchor href=#edit_params-1></a></h2><p>这个过程和 afl-gcc 设置参数的逻辑基本一致：</p><ul><li>首先确定 as 程序的名字，用户也可以提供 AFL_AS 来覆盖</li><li>设置临时文件 modified_file 路径为 /tmp/.afl-pid-timestamp.s</li><li>将自己程序的 argv 原样复制给 as</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Examine and modify parameters to pass to &#39;as&#39;. Note that the file name
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   is always the last parameter passed by GCC, so we exploit this property
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   to keep the code simple. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>edit_params</span>(<span style=color:#0b0;font-weight:700>int</span> argc, <span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8 <span style=color:#666>*</span>tmp_dir <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;TMPDIR&#34;</span>), <span style=color:#666>*</span>afl_as <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_AS&#34;</span>);
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  u8 use_clang_as <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* On MacOS X, the Xcode cctool &#39;as&#39; driver is a bit stale and does not work
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     with the code generated by newer versions of clang that are hand-built
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     by the user. See the thread here: http://goo.gl/HBWDtn.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     To work around this, when using clang and running without AFL_AS
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     specified, we will actually call &#39;clang -c&#39; instead of &#39;as -q&#39; to
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     compile the assembly file.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     The tools aren&#39;t cmdline-compatible, but at least for now, we can
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     seemingly get away with this by making only very minor tweaks. Thanks
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     to Nico Weber for the idea. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (clang_mode <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>afl_as) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    use_clang_as <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    afl_as <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CC&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>afl_as) afl_as <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_CXX&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>afl_as) afl_as <span style=color:#666>=</span> <span style=color:#b44>&#34;clang&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Although this is not documented, GCC also uses TEMP and TMP when TMPDIR
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     is not set. We need to check these non-standard variables to properly
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     handle the pass_thru logic later on. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>tmp_dir) tmp_dir <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;TEMP&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>tmp_dir) tmp_dir <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;TMP&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>tmp_dir) tmp_dir <span style=color:#666>=</span> <span style=color:#b44>&#34;/tmp&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  as_params <span style=color:#666>=</span> <span style=color:#00a000>ck_alloc</span>((argc <span style=color:#666>+</span> <span style=color:#666>32</span>) <span style=color:#666>*</span> <span style=color:#a2f;font-weight:700>sizeof</span>(u8<span style=color:#666>*</span>));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  as_params[<span style=color:#666>0</span>] <span style=color:#666>=</span> afl_as <span style=color:#666>?</span> <span style=color:#a0a000>afl_as</span> : (u8<span style=color:#666>*</span>)<span style=color:#b44>&#34;as&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  as_params[argc] <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>1</span>; i <span style=color:#666>&lt;</span> argc <span style=color:#666>-</span> <span style=color:#666>1</span>; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i], <span style=color:#b44>&#34;--64&#34;</span>)) use_64bit <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i], <span style=color:#b44>&#34;--32&#34;</span>)) use_64bit <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* The Apple case is a bit different... */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i], <span style=color:#b44>&#34;-arch&#34;</span>) <span style=color:#666>&amp;&amp;</span> i <span style=color:#666>+</span> <span style=color:#666>1</span> <span style=color:#666>&lt;</span> argc) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i <span style=color:#666>+</span> <span style=color:#666>1</span>], <span style=color:#b44>&#34;x86_64&#34;</span>)) use_64bit <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i <span style=color:#666>+</span> <span style=color:#666>1</span>], <span style=color:#b44>&#34;i386&#34;</span>))
+</span></span><span style=display:flex><span>        <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Sorry, 32-bit Apple platforms are not supported.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Strip options that set the preference for a particular upstream
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       assembler in Xcode. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (clang_mode <span style=color:#666>&amp;&amp;</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i], <span style=color:#b44>&#34;-q&#34;</span>) <span style=color:#666>||</span> <span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(argv[i], <span style=color:#b44>&#34;-Q&#34;</span>)))
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>    as_params[as_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> argv[i];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* When calling clang as the upstream assembler, append -c -x assembler
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     and hope for the best. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (use_clang_as) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    as_params[as_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-c&#34;</span>;
+</span></span><span style=display:flex><span>    as_params[as_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;-x&#34;</span>;
+</span></span><span style=display:flex><span>    as_params[as_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> <span style=color:#b44>&#34;assembler&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>  input_file <span style=color:#666>=</span> argv[argc <span style=color:#666>-</span> <span style=color:#666>1</span>];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (input_file[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;-&#39;</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strcmp</span>(input_file <span style=color:#666>+</span> <span style=color:#666>1</span>, <span style=color:#b44>&#34;-version&#34;</span>)) {
+</span></span><span style=display:flex><span>      just_version <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>      modified_file <span style=color:#666>=</span> input_file;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>goto</span> wrap_things_up;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (input_file[<span style=color:#666>1</span>]) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Incorrect use (not called through afl-gcc?)&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>else</span> input_file <span style=color:#666>=</span> <span style=color:#a2f>NULL</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Check if this looks like a standard invocation as a part of an attempt
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       to compile a program, rather than using gcc on an ad-hoc .s file in
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       a format we may not understand. This works around an issue compiling
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       NSS. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strncmp</span>(input_file, tmp_dir, <span style=color:#00a000>strlen</span>(tmp_dir)) <span style=color:#666>&amp;&amp;</span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>strncmp</span>(input_file, <span style=color:#b44>&#34;/var/tmp/&#34;</span>, <span style=color:#666>9</span>) <span style=color:#666>&amp;&amp;</span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>strncmp</span>(input_file, <span style=color:#b44>&#34;/tmp/&#34;</span>, <span style=color:#666>5</span>)) pass_thru <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  modified_file <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/.afl-%u-%u.s&#34;</span>, tmp_dir, <span style=color:#00a000>getpid</span>(),
+</span></span><span style=display:flex><span>                               (u32)<span style=color:#00a000>time</span>(<span style=color:#a2f>NULL</span>));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>wrap_things_up</span>:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  as_params[as_par_cnt<span style=color:#666>++</span>] <span style=color:#666>=</span> modified_file;
+</span></span><span style=display:flex><span>  as_params[as_par_cnt]   <span style=color:#666>=</span> <span style=color:#a2f>NULL</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=add_instrumentation>add_instrumentation
+<a class=header-anchor href=#add_instrumentation></a></h2><ul><li>这里笔者把__APPLE__部分删去了</li><li>这个函数每次扫描input_file一行，如果发现这个地方要插桩，则把桩代码插进去，再插入原本的input_file这一行，最后都写入到modified_file这个文件。在在扫描完成之后，于文件末尾写入 main payload</li><li>这部分不必细看，基本就是扫描文件，判断是否需要插入桩代码，比较琐碎</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Process input file, generate modified_file. Insert instrumentation in all
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   the appropriate places. */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>add_instrumentation</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> u8 line[MAX_LINE];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  FILE<span style=color:#666>*</span> inf;
+</span></span><span style=display:flex><span>  FILE<span style=color:#666>*</span> outf;
+</span></span><span style=display:flex><span>  s32 outfd;
+</span></span><span style=display:flex><span>  u32 ins_lines <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8  instr_ok <span style=color:#666>=</span> <span style=color:#666>0</span>, skip_csect <span style=color:#666>=</span> <span style=color:#666>0</span>, skip_next_label <span style=color:#666>=</span> <span style=color:#666>0</span>,
+</span></span><span style=display:flex><span>      skip_intel <span style=color:#666>=</span> <span style=color:#666>0</span>, skip_app <span style=color:#666>=</span> <span style=color:#666>0</span>, instrument_next <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (input_file) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    inf <span style=color:#666>=</span> <span style=color:#00a000>fopen</span>(input_file, <span style=color:#b44>&#34;r&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>inf) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to read &#39;%s&#39;&#34;</span>, input_file);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> inf <span style=color:#666>=</span> stdin;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  outfd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(modified_file, O_WRONLY <span style=color:#666>|</span> O_EXCL <span style=color:#666>|</span> O_CREAT, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (outfd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to write to &#39;%s&#39;&#34;</span>, modified_file);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  outf <span style=color:#666>=</span> <span style=color:#00a000>fdopen</span>(outfd, <span style=color:#b44>&#34;w&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>outf) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;fdopen() failed&#34;</span>);  
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (<span style=color:#00a000>fgets</span>(line, MAX_LINE, inf)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* In some cases, we want to defer writing the instrumentation trampoline
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       until after all the labels, macros, comments, etc. If we&#39;re in this
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       mode, and if the line starts with a tab followed by a character, dump
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       the trampoline now. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>pass_thru <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>skip_intel <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>skip_app <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>skip_csect <span style=color:#666>&amp;&amp;</span> instr_ok <span style=color:#666>&amp;&amp;</span>
+</span></span><span style=display:flex><span>        instrument_next <span style=color:#666>&amp;&amp;</span> line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;\t&#39;</span> <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>isalpha</span>(line[<span style=color:#666>1</span>])) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>fprintf</span>(outf, use_64bit <span style=color:#666>?</span> <span style=color:#a0a000>trampoline_fmt_64</span> : trampoline_fmt_32,
+</span></span><span style=display:flex><span>              <span style=color:#00a000>R</span>(MAP_SIZE));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      instrument_next <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>      ins_lines<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Output the actual line, call it a day in pass-thru mode. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>fputs</span>(line, outf);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (pass_thru) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* All right, this is where the actual fun begins. For one, we only want to
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       instrument the .text section. So, let&#39;s keep track of that in processed
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       files - and let&#39;s set instr_ok accordingly. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;\t&#39;</span> <span style=color:#666>&amp;&amp;</span> line[<span style=color:#666>1</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;.&#39;</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>/* OpenBSD puts jump tables directly inline with the code, which is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         a bit annoying. They use a specific format of p2align directives
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         around them, so we use that as a signal. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>clang_mode <span style=color:#666>&amp;&amp;</span> instr_ok <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;p2align &#34;</span>, <span style=color:#666>8</span>) <span style=color:#666>&amp;&amp;</span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>isdigit</span>(line[<span style=color:#666>10</span>]) <span style=color:#666>&amp;&amp;</span> line[<span style=color:#666>11</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;\n&#39;</span>) skip_next_label <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;text</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>, <span style=color:#666>5</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;section</span><span style=color:#b62;font-weight:700>\t</span><span style=color:#b44>.text&#34;</span>, <span style=color:#666>13</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;section</span><span style=color:#b62;font-weight:700>\t</span><span style=color:#b44>__TEXT,__text&#34;</span>, <span style=color:#666>21</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;section __TEXT,__text&#34;</span>, <span style=color:#666>21</span>)) {
+</span></span><span style=display:flex><span>        instr_ok <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>continue</span>; 
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;section</span><span style=color:#b62;font-weight:700>\t</span><span style=color:#b44>&#34;</span>, <span style=color:#666>8</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;section &#34;</span>, <span style=color:#666>8</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;bss</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>, <span style=color:#666>4</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>          <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>2</span>, <span style=color:#b44>&#34;data</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>, <span style=color:#666>5</span>)) {
+</span></span><span style=display:flex><span>        instr_ok <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Detect off-flavor assembly (rare, happens in gdb). When this is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       encountered, we set skip_csect until the opposite directive is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       seen, and we do not instrument. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;.code&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;.code32&#34;</span>)) skip_csect <span style=color:#666>=</span> use_64bit;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;.code64&#34;</span>)) skip_csect <span style=color:#666>=</span> <span style=color:#666>!</span>use_64bit;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Detect syntax changes, as could happen with hand-written assembly.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       Skip Intel blocks, resume instrumentation when back to AT&amp;T. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;.intel_syntax&#34;</span>)) skip_intel <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;.att_syntax&#34;</span>)) skip_intel <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Detect and skip ad-hoc __asm__ blocks, likewise skipping them. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;#&#39;</span> <span style=color:#666>||</span> line[<span style=color:#666>1</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;#&#39;</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;#APP&#34;</span>)) skip_app <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;#NO_APP&#34;</span>)) skip_app <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* If we&#39;re in the right mood for instrumenting, check for function
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       names or conditional labels. This is a bit messy, but in essence,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       we want to catch:
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^main:      - function entry point (always instrumented)
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^.L0:       - GCC branch label
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^.LBB0_0:   - clang branch label (but only in clang mode)
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^\tjnz foo  - conditional branches
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       ...but not:
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^# BB#0:    - clang comments
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^ # BB#0:   - ditto
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^.Ltmp0:    - clang non-branch labels
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^.LC0       - GCC non-branch labels
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^.LBB0_0:   - ditto (when in GCC mode)
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         ^\tjmp foo  - non-conditional jumps
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       Additionally, clang and GCC on MacOS X follow a different convention
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       with no leading dots on labels, hence the weird maze of #ifdefs
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       later on.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (skip_intel <span style=color:#666>||</span> skip_app <span style=color:#666>||</span> skip_csect <span style=color:#666>||</span> <span style=color:#666>!</span>instr_ok <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>        line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;#&#39;</span> <span style=color:#666>||</span> line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39; &#39;</span>) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Conditional branch instruction (jnz, etc). We append the instrumentation
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       right after the branch (to instrument the not-taken path) and at the
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       branch destination label (handled later on). */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;\t&#39;</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (line[<span style=color:#666>1</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;j&#39;</span> <span style=color:#666>&amp;&amp;</span> line[<span style=color:#666>2</span>] <span style=color:#666>!=</span> <span style=color:#b44>&#39;m&#39;</span> <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>R</span>(<span style=color:#666>100</span>) <span style=color:#666>&lt;</span> inst_ratio) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>fprintf</span>(outf, use_64bit <span style=color:#666>?</span> <span style=color:#a0a000>trampoline_fmt_64</span> : trampoline_fmt_32,
+</span></span><span style=display:flex><span>                <span style=color:#00a000>R</span>(MAP_SIZE));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        ins_lines<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Label of some sort. This may be a branch destination, but we need to
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       tread carefully and account for several different formatting
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       conventions. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Everybody else: .L&lt;whatever&gt;: */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>strstr</span>(line, <span style=color:#b44>&#34;:&#34;</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (line[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;.&#39;</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> ((<span style=color:#00a000>isdigit</span>(line[<span style=color:#666>2</span>]) <span style=color:#666>||</span> (clang_mode <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>strncmp</span>(line <span style=color:#666>+</span> <span style=color:#666>1</span>, <span style=color:#b44>&#34;LBB&#34;</span>, <span style=color:#666>3</span>)))
+</span></span><span style=display:flex><span>            <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>R</span>(<span style=color:#666>100</span>) <span style=color:#666>&lt;</span> inst_ratio) {
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>skip_next_label) instrument_next <span style=color:#666>=</span> <span style=color:#666>1</span>; <span style=color:#a2f;font-weight:700>else</span> skip_next_label <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>/* Function label (always instrumented, deferred mode). */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        instrument_next <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (ins_lines)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>fputs</span>(use_64bit <span style=color:#666>?</span> <span style=color:#a0a000>main_payload_64</span> : main_payload_32, outf);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (input_file) <span style=color:#00a000>fclose</span>(inf);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>fclose</span>(outf);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>be_quiet) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>ins_lines) <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;No instrumentation targets found%s.&#34;</span>,
+</span></span><span style=display:flex><span>                          pass_thru <span style=color:#666>?</span> <span style=color:#b44>&#34; (pass-thru mode)&#34;</span> <span style=color:#666>:</span> <span style=color:#b44>&#34;&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span> <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;Instrumented %u locations (%s-bit, %s mode, ratio %u%%).&#34;</span>,
+</span></span><span style=display:flex><span>             ins_lines, use_64bit <span style=color:#666>?</span> <span style=color:#b44>&#34;64&#34;</span> <span style=color:#666>:</span> <span style=color:#b44>&#34;32&#34;</span>,
+</span></span><span style=display:flex><span>             <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_HARDEN&#34;</span>) <span style=color:#666>?</span> <span style=color:#b44>&#34;hardened&#34;</span> <span style=color:#666>:</span> 
+</span></span><span style=display:flex><span>             (sanitizer <span style=color:#666>?</span> <span style=color:#b44>&#34;ASAN/MSAN&#34;</span> <span style=color:#666>:</span> <span style=color:#b44>&#34;non-hardened&#34;</span>),
+</span></span><span style=display:flex><span>             inst_ratio);
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=trampoline_fmt_64>trampoline_fmt_64
+<a class=header-anchor href=#trampoline_fmt_64></a></h1><ul><li>这部分的定义在afl-as.h中</li><li>主要逻辑就是</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>将 rsp 下降一段距离
+</span></span><span style=display:flex><span>将 rdx, rcx, rax 的值存放到栈上
+</span></span><span style=display:flex><span>将 rcx 设为一个立即数（由 afl-as 随机生成）
+</span></span><span style=display:flex><span>调用 __afl_maybe_log
+</span></span><span style=display:flex><span>恢复 rdx, rcx, rax 和 rsp
+</span></span></code></pre></div><ul><li>汇编代码如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>const</span> u8<span style=color:#666>*</span> trampoline_fmt_64 <span style=color:#666>=</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;/* --- AFL TRAMPOLINE (64-BIT) --- */</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;.align 4</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;leaq -(128+24)(%%rsp), %%rsp</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq %%rdx,  0(%%rsp)</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq %%rcx,  8(%%rsp)</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq %%rax, 16(%%rsp)</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq $0x%08x, %%rcx</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;call __afl_maybe_log</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq 16(%%rsp), %%rax</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq  8(%%rsp), %%rcx</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;movq  0(%%rsp), %%rdx</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;leaq (128+24)(%%rsp), %%rsp</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;/* --- END --- */</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>;
+</span></span></code></pre></div><ul><li>test.c，使用./afl-gcc test.c -o test -fno-asynchronous-unwind-tables编译,可以看到每个基本块的入口都被代码插桩img <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/21.png alt></li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;stdio.h&gt; </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;stdlib.h&gt; </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;unistd.h&gt; </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;string.h&gt; </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;signal.h&gt; </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#0b0;font-weight:700>int</span> <span style=color:#00a000>vuln</span>(<span style=color:#0b0;font-weight:700>char</span> <span style=color:#666>*</span>str)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#0b0;font-weight:700>int</span> len <span style=color:#666>=</span> <span style=color:#00a000>strlen</span>(str);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span>(str[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;A&#39;</span> <span style=color:#666>&amp;&amp;</span> len <span style=color:#666>==</span> <span style=color:#666>66</span>)
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>        <span style=color:#00a000>raise</span>(SIGSEGV);
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>//如果输入的字符串的首字符为A并且长度为66，则异常退出
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span> <span style=color:#a2f;font-weight:700>if</span>(str[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#b44>&#39;F&#39;</span> <span style=color:#666>&amp;&amp;</span> len <span style=color:#666>==</span> <span style=color:#666>6</span>)
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>        <span style=color:#00a000>raise</span>(SIGSEGV);
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>//如果输入的字符串的首字符为F并且长度为6，则异常退出
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span>
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>        <span style=color:#00a000>printf</span>(<span style=color:#b44>&#34;it is good!</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#0b0;font-weight:700>int</span> <span style=color:#00a000>main</span>(<span style=color:#0b0;font-weight:700>int</span> argc, <span style=color:#0b0;font-weight:700>char</span> <span style=color:#666>*</span>argv[])
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#0b0;font-weight:700>char</span> buf[<span style=color:#666>100</span>]<span style=color:#666>=</span>{<span style=color:#666>0</span>};
+</span></span><span style=display:flex><span>    <span style=color:#00a000>gets</span>(buf);<span style=color:#080;font-style:italic>//存在栈溢出漏洞
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>printf</span>(buf);<span style=color:#080;font-style:italic>//存在格式化字符串漏洞
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>vuln</span>(buf);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><ul><li>用ida反汇编这里主要想看看__afl_maybe_log函数做了什么,ida反汇编结果如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-asm data-lang=asm><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>B8</span> <span style=color:#800>__afl_maybe_log</span> <span style=color:#800>proc</span> <span style=color:#800>near</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>B8</span>                 <span style=color:#800>lahf</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>B9</span>                 <span style=color:#800>seto</span>    <span style=color:#800>al</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>BC</span>                 <span style=color:#800>mov</span>     <span style=color:#800>rdx</span>, <span style=color:#800>cs</span>:<span style=color:#800>__afl_area_ptr</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C3</span>                 <span style=color:#800>test</span>    <span style=color:#800>rdx</span>, <span style=color:#800>rdx</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C6</span>                 <span style=color:#800>jz</span>      <span style=color:#800>short</span> <span style=color:#800>__afl_setup</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C8</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C8</span> <span style=color:#800>__afl_store</span>:                            <span style=color:#080;font-style:italic>; CODE XREF: __afl_maybe_log+4F↓j
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C8</span>                                         <span style=color:#080;font-style:italic>; __afl_maybe_log+309↓j
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>C8</span>                 <span style=color:#800>xor</span>     <span style=color:#800>rcx</span>, <span style=color:#800>cs</span>:<span style=color:#800>__afl_prev_loc</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>CF</span>                 <span style=color:#800>xor</span>     <span style=color:#800>cs</span>:<span style=color:#800>__afl_prev_loc</span>, <span style=color:#800>rcx</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>D6</span>                 <span style=color:#800>shr</span>     <span style=color:#800>cs</span>:<span style=color:#800>__afl_prev_loc</span>, <span style=color:#666>1</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>DD</span>                 <span style=color:#800>inc</span>     <span style=color:#800>byte</span> <span style=color:#800>ptr</span> [<span style=color:#800>rdx</span><span>+</span><span style=color:#800>rcx</span>]
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E0</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E0</span> <span style=color:#800>__afl_return</span>:                           <span style=color:#080;font-style:italic>; CODE XREF: __afl_maybe_log+37↓j
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E0</span>                                         <span style=color:#080;font-style:italic>; __afl_maybe_log+3E2↓j
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E0</span>                 <span style=color:#800>add</span>     <span style=color:#800>al</span>, <span style=color:#666>7</span><span style=color:#800>Fh</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E2</span>                 <span style=color:#800>sahf</span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>.text:</span><span>00000000000015</span><span style=color:#00a000>E3</span>                 <span style=color:#800>retn</span>
+</span></span></code></pre></div><ul><li>逻辑如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>1. 判断__afl_area_ptr是否为空，不为空则调用__afl_store
+</span></span><span style=display:flex><span>2. rcx的值(rcx值为生成的立即数，_afl_cur_loc) 异或 __afl_prev_loc的值
+</span></span><span style=display:flex><span>3. __afl_prev_loc的值 异或 rcx的值，两次异或，那么此时__afl_prev_loc就是生成的_afl_cur_loc
+</span></span><span style=display:flex><span>4. __afl_prev_loc右移一位，__afl_prev_loc=_afl_cur_loc&gt;&gt;1
+</span></span><span style=display:flex><span>5. rcx=__afl_prev_loc ^ _afl_cur_loc  [__afl_area_ptr+ __afl_prev_loc ^ _afl_cur_loc]+=1,也就是增加 hit count
+</span></span></code></pre></div><ul><li>右移1位的原因</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>B-&gt;C-&gt;D 路径表现为 shared_mem[(B&gt;&gt;1)^C]++ shared_mem[(C&gt;&gt;1)^D]++
+</span></span><span style=display:flex><span>B-&gt;D-&gt;C 路径表现为 shared_mem[(B&gt;&gt;1)^D]++ shared_mem[(D&gt;&gt;1)^C]++
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>如果不移位，对于路径 A-&gt;B 与 B-&gt;A 表现均为 shared_mem[A^B]++ ，无法区分
+</span></span><span style=display:flex><span>如果不移位，对于环形路径 A-&gt;A 与 B-&gt;B 表现均为 shared_mem[0]++ ，无法区分
+</span></span></code></pre></div><ul><li>随机数的生成,利用格式化字符串传入随机数</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>// &#34;movq $0x%08x, %%rcx\n&#34;
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span><span style=color:#080>#  define R(x) (random() % (x))
+</span></span></span><span style=display:flex><span><span style=color:#080></span><span style=color:#00a000>fprintf</span>(outf, use_64bit <span style=color:#666>?</span> <span style=color:#a0a000>trampoline_fmt_64</span> : trampoline_fmt_32, <span style=color:#00a000>R</span>(MAP_SIZE));
+</span></span></code></pre></div><ul><li>这也正如
+<a href=https://github.com/google/AFL/blob/master/docs/technical_details.txt title=afl白皮书 rel="noopener external nofollow noreferrer" target=_blank class=exturl>afl白皮书
+<i class="fa fa-external-link-alt"></i>
+</a>中的内容</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>cur_location = &lt;COMPILE_TIME_RANDOM&gt;;
+</span></span><span style=display:flex><span>shared_mem[cur_location ^ prev_location]++; 
+</span></span><span style=display:flex><span>prev_location = cur_location &gt;&gt; 1;
+</span></span></code></pre></div><h1 id=main-payload>main payload
+<a class=header-anchor href=#main-payload></a></h1><h2 id=主要逻辑>主要逻辑
+<a class=header-anchor href=#%e4%b8%bb%e8%a6%81%e9%80%bb%e8%be%91></a></h2><ul><li>汇编代码不好看懂，但是可以用ida反汇编后再看</li><li>逻辑如下,图源ScUpax0s师傅 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/23.png alt=图源ScUpax0s师傅></li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>1. 先判断_afl_area_ptr是否为NULL，不为NULL则直接执行hit count++操作
+</span></span><span style=display:flex><span>2. 如果为NULL，则看_afl_setup_failure的值，不为0则直接返回，否则进入下面流程
+</span></span><span style=display:flex><span>3. 判断_afl_global_area_ptr是否为NULL，不为NULL直接赋值给_afl_area_ptr,否则进入下面流程
+</span></span><span style=display:flex><span>4. 从环境变量__AFL_SHM_ID读取值，读取失败则_afl_setup_failure加1，返回
+</span></span><span style=display:flex><span>5. 向fd=199处写入4个字节的值，从fd=198处读取4个字节的值
+</span></span><span style=display:flex><span>6. 调用fork()函数，如果是子进程,goto __afl_fork_resume
+</span></span><span style=display:flex><span>7. 在父进程中，给_afl_fork_pid赋值为子进程的pid，向fd=199写入pid值，然后调用waitpid等待子进程执行结束，再向fd=199写入4字节的值（子进程的退出状态）
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#0b0;font-weight:700>char</span> <span style=color:#a2f;font-weight:700>__fastcall</span> <span style=color:#00a000>_afl_maybe_log</span>(_QWORD a1, _QWORD a2, _QWORD a3, <span style=color:#a2f;font-weight:700>__int64</span> a4)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>char</span> v4; <span style=color:#080;font-style:italic>// of
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>char</span> v5; <span style=color:#080;font-style:italic>// al
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v6; <span style=color:#080;font-style:italic>// rdx
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v7; <span style=color:#080;font-style:italic>// rcx
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>char</span> <span style=color:#666>*</span>v9; <span style=color:#080;font-style:italic>// rax
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>int</span> v10; <span style=color:#080;font-style:italic>// eax
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>v11; <span style=color:#080;font-style:italic>// rax
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>int</span> v12; <span style=color:#080;font-style:italic>// edi
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v13; <span style=color:#080;font-style:italic>// rax
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v14; <span style=color:#080;font-style:italic>// rax
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v15; <span style=color:#080;font-style:italic>// [rsp-10h] [rbp-180h]
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#0b0;font-weight:700>char</span> v16; <span style=color:#080;font-style:italic>// [rsp+10h] [rbp-160h]
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>__int64</span> v17; <span style=color:#080;font-style:italic>// [rsp+18h] [rbp-158h]
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>
+</span></span><span style=display:flex><span>  v5 <span style=color:#666>=</span> v4;
+</span></span><span style=display:flex><span>  v6 <span style=color:#666>=</span> _afl_area_ptr;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#666>!</span>_afl_area_ptr )
+</span></span><span style=display:flex><span>  {
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> ( _afl_setup_failure )
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>return</span> v5 <span style=color:#666>+</span> <span style=color:#666>127</span>;
+</span></span><span style=display:flex><span>    v6 <span style=color:#666>=</span> _afl_global_area_ptr;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> ( _afl_global_area_ptr )
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      _afl_area_ptr <span style=color:#666>=</span> _afl_global_area_ptr;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>else</span>
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      v16 <span style=color:#666>=</span> v4;
+</span></span><span style=display:flex><span>      v17 <span style=color:#666>=</span> a4;
+</span></span><span style=display:flex><span>      v9 <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;__AFL_SHM_ID&#34;</span>);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#666>!</span>v9 <span style=color:#666>||</span> (v10 <span style=color:#666>=</span> <span style=color:#00a000>atoi</span>(v9), v11 <span style=color:#666>=</span> <span style=color:#00a000>shmat</span>(v10, <span style=color:#666>0LL</span>, <span style=color:#666>0</span>), v11 <span style=color:#666>==</span> (<span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>)<span style=color:#666>-</span><span style=color:#666>1LL</span>) )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#666>++</span>_afl_setup_failure;
+</span></span><span style=display:flex><span>        v5 <span style=color:#666>=</span> v16;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>return</span> v5 <span style=color:#666>+</span> <span style=color:#666>127</span>;
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      _afl_area_ptr <span style=color:#666>=</span> (<span style=color:#a2f;font-weight:700>__int64</span>)v11;
+</span></span><span style=display:flex><span>      _afl_global_area_ptr <span style=color:#666>=</span> v11;
+</span></span><span style=display:flex><span>      v15 <span style=color:#666>=</span> (<span style=color:#a2f;font-weight:700>__int64</span>)v11;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>==</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>while</span> ( <span style=color:#666>1</span> )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> <span style=color:#666>198</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>read</span>(<span style=color:#666>198</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>!=</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v13) <span style=color:#666>=</span> <span style=color:#00a000>fork</span>();
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v13 <span style=color:#666>&lt;</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#666>!</span>v13 )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>goto</span> __afl_fork_resume;
+</span></span><span style=display:flex><span>          _afl_fork_pid <span style=color:#666>=</span> v13;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_fork_pid, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> _afl_fork_pid;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v14) <span style=color:#666>=</span> <span style=color:#00a000>waitpid</span>(_afl_fork_pid, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v14 <span style=color:#666>&lt;=</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#00a000>_exit</span>(v12);
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span><span style=color:#a0a000>__afl_fork_resume</span>:
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(<span style=color:#666>198</span>);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(<span style=color:#666>199</span>);
+</span></span><span style=display:flex><span>      v6 <span style=color:#666>=</span> v15;
+</span></span><span style=display:flex><span>      v5 <span style=color:#666>=</span> v16;
+</span></span><span style=display:flex><span>      a4 <span style=color:#666>=</span> v17;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  v7 <span style=color:#666>=</span> _afl_prev_loc <span style=color:#666>^</span> a4;
+</span></span><span style=display:flex><span>  _afl_prev_loc <span style=color:#666>^=</span> v7;
+</span></span><span style=display:flex><span>  _afl_prev_loc <span style=color:#666>=</span> (<span style=color:#0b0;font-weight:700>unsigned</span> <span style=color:#a2f;font-weight:700>__int64</span>)_afl_prev_loc <span style=color:#666>&gt;&gt;</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>  <span style=color:#666>++*</span>(_BYTE <span style=color:#666>*</span>)(v6 <span style=color:#666>+</span> v7);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> v5 <span style=color:#666>+</span> <span style=color:#666>127</span>;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><ul><li>__afl_fork_resume,可以看到ida反汇编后的内容比较奇怪，这是因为这里是在恢复所有寄存器，恢复栈地址 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/22.png alt></li></ul><h2 id=一些思考>一些思考
+<a class=header-anchor href=#%e4%b8%80%e4%ba%9b%e6%80%9d%e8%80%83></a></h2><h3 id=__afl_shm_id这个环境变量什么时候创建的>__AFL_SHM_ID这个环境变量什么时候创建的？
+<a class=header-anchor href=#__afl_shm_id%e8%bf%99%e4%b8%aa%e7%8e%af%e5%a2%83%e5%8f%98%e9%87%8f%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%88%9b%e5%bb%ba%e7%9a%84></a></h3><ul><li>看到后面的源码得知在afl-fuzz.c中setup_shm()函数创建了这个环境变量</li></ul><h3 id=为什么要用fork_server>为什么要用fork_server?
+<a class=header-anchor href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e7%94%a8fork_server></a></h3><p>给出一些参考过的文章</p><p><a href=https://xidoo.top/2022/01/afl-rsc3/ title="AFL 源码分析（三）forkserver 详解" rel="noopener external nofollow noreferrer" target=_blank class=exturl>AFL 源码分析（三）forkserver 详解
+<i class="fa fa-external-link-alt"></i></a></p><p><a href=https://rk700.github.io/2017/12/28/afl-internals/ title=AFL内部实现细节小记 rel="noopener external nofollow noreferrer" target=_blank class=exturl>AFL内部实现细节小记
+<i class="fa fa-external-link-alt"></i></a></p><ul><li>AFL 源源不断地将变异得到的测试用例喂给待测试程序，这个过程中少不了 fork 与 execve. 为提高效率、减少开销，它实现了一套 forkserver 机制来反复运行并测试程序。“为了更高效地进行上述过程，AFL实现了一套 fork server 机制。其基本思路是：启动 target 进程后，target 会运行一个 fork server；fuzzer 并不负责 fork 子进程，而是与这个 fork server 通信，并由 fork server 来完成 fork 及继续执行目标的操作。这样设计的最大好处，就是不需要调用 execve()，从而节省了载入目标文件和库、解析符号地址等重复性工作。</li><li>execve() 的效率比较低。fuzzer 需要高频率地执行目标程序，显然不宜在 execve() 上浪费过多时间。AFL 的解决方案是使用 fork server：让程序在第一个基本块处停下，等待 fuzzer 发送指令；收到指令后继续执行程序；执行完毕后，恢复 fork 时的状态。得益于 copy-on-write 技术，我们可以高效地实现这一需求。</li><li>图源x1do0师傅 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/24.png alt></li><li>fork server的具体运行原理：fuzzer执行fork()得到父进程和子进程，这里的父进程仍然为fuzzer，子进程则为target进程，即将来的fork server。</li></ul></div><footer class=post-footer><div class=post-tags><a href=/tags/fuzz>Fuzz</a></div><div class=addthis_inline_share_toolbox style=text-align:center></div><hr><div class=reward-container><div><i class="fa-solid fa-mug-hot"></i>请我喝杯咖啡吧 ヾ(^▽^*)))</div><button>
+赞赏</button><div class=post-reward><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/ali-pay.png alt="f1ow - 支付宝">
+<span>支付宝</span></div><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/wechat-pay.png alt="f1ow - 微信">
+<span>微信</span></div></div></div><div class=post-copyright><img src=/imgs/cc/cc.svg width=75 height=75 align=right alt=共享知识><ul><li class=post-copyright-title><strong>文章标题：</strong>
+afl-gcc与afl-as源码阅读</li><li class=post-copyright-author><strong>本文作者： </strong>f1ow</li><li class=post-copyright-link><strong>本文链接：</strong>
+<a id=post-cr-link href=https://zp9080.github.io/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/ title=afl-gcc与afl-as源码阅读>https://zp9080.github.io/post/fuzz/afl-gcc%E4%B8%8Eafl-as%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</a></li><li class=post-copyright-license><strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <i class="fab fa-fw fa-creative-commons"></i><a target=_blank href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh>BY-NC-SA</a> 许可协议。转载请注明出处！</li></ul></div><div class=post-nav><div class="post-nav-next post-nav-item"><a href=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/ rel=next title=afl-fuzz源码分析上篇><i class="fa fa-chevron-left"></i> afl-fuzz源码分析上篇</a></div><div class="post-nav-prev post-nav-item"><a href=/post/web-pwn/%E5%9F%BA%E4%BA%8Epopen%E5%87%BD%E6%95%B0%E7%9A%84%E6%94%BB%E5%87%BB/ rel=prev title=基于popen函数的攻击>基于popen函数的攻击
+<i class="fa fa-chevron-right"></i></a></div></div></footer></article></div></div></main><footer class=footer><div class=footer-inner><div class=copyright>&copy;
+<span itemprop=copyrightYear>2024 - 2025
+</span><span class=with-love><i class="fa fa-heart"></i>
+</span><span class=author itemprop=copyrightHolder>f1ow</span></div><div class=powered-by>由 <a href=https://gohugo.io title=0.126.1 target=_blank>Hugo</a> & <a href=https://github.com/hugo-next/hugo-theme-next title=4.6.3 target=_blank>Hugo NexT.Gemini</a> 强力驱动</div><div class=beian><a href=https://beian.miit.gov.cn target=_blank>鄂ICP备 20240001号</a>
+<img src=/imgs/gongan.png alt=鄂公网安备>
+<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=42010002002000" target=_blank>鄂公网安备 42010002002000 号</a></div><div class=vendors-list><a target=_blank href=https://vercel.com title=Vercel><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/vercel.svg alt=Vercel>
+</a><a target=_blank href=https://upyun.com title=又拍云><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/upyun.png alt=又拍云>
+</a><a target=_blank href=https://github.com title=Github><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/github.svg alt=Github>
+</a><span>提供CDN/云资源支持</span></div></div></footer><script type=text/javascript src=https://zp9080.github.io/3rd/animejs/3.2.2/anime.min.js crossorigin=anonymous defer></script><script type=text/javascript src=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.js crossorigin=anonymous defer></script><script class=next-config data-name=main type=application/json>{"bookmark":{"color":"#222","enable":true,"save":"manual"},"copybtn":true,"darkmode":false,"giscus":{"cfg":{"category":"Comments","categoryid":null,"emit":false,"inputposition":"top","mapping":"title","reactions":false,"repo":"username/repo-name","repoid":null,"theme":"preferred_color_scheme"},"js":"https://giscus.app/client.js"},"hostname":"https://zp9080.github.io/","i18n":{"ds_day":" 天前","ds_days":" 天 ","ds_hour":" 小时前","ds_hours":" 小时 ","ds_just":"刚刚","ds_min":" 分钟前","ds_mins":" 分钟","ds_month":" 个月前","ds_years":" 年 ","empty":"没有找到任何搜索结果：${query}","hits":"找到 ${hits} 个搜索结果","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","placeholder":"搜索..."},"lang":"zh-CN","lazyload":false,"localSearch":{"enable":true,"limit":1e3,"path":"/searchindexes.xml","preload":false,"topnperarticle":-1,"trigger":"auto","unescape":false},"motion":{"async":true,"enable":true,"transition":{"collheader":"fadeInLeft","postblock":"fadeIn","postbody":"fadeInDown","postheader":"fadeInDown","sidebar":"fadeInUp"}},"postmeta":{"comments":{"enable":true,"plugin":"waline"},"views":{"enable":true,"plugin":"busuanzi"}},"root":"/","scheme":"Gemini","sidebar":{"display":"post","offset":12,"padding":18,"position":"left","width":256},"vendor":{"plugins":"local","router":{"name":"local","type":"modern","url":"https://zp9080.github.io/3rd"}},"version":"4.6.3","waline":{"cfg":{"emoji":false,"imguploader":false,"placeholder":"请文明发言哟 ヾ(≧▽≦*)o","reaction":true,"reactiontext":["点赞","踩一下","得意","不屑","尴尬","睡觉"],"reactiontitle":"你认为这篇文章怎么样？","requiredmeta":["nick","mail"],"serverurl":null,"sofa":"快来发表你的意见吧 (≧∀≦)ゞ","wordlimit":200},"css":{"alias":"@waline/client","file":"dist/waline.css","name":"waline","version":"2.15.8"},"js":{"alias":"@waline/client","file":"dist/waline.js","name":"waline","version":"2.15.8"}}}</script><script type=text/javascript src=/js/main.min.befa9b7d22ec90da86c74c5dbff5ee42c12e9fc6d6f4448bfcc596cc329b19e8.js defer></script></body></html>

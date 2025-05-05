@@ -1,0 +1,1199 @@
+<!doctype html><html lang=zh-CN data-theme=light><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><meta name=theme-color content="#222" media="(prefers-color-scheme: light)"><meta name=generator content="Hugo 0.126.1"><link rel="shortcut icon" type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/png sizes=16x16 href=/imgs/icons/favicon_16x16_next.png><link rel=icon type=image/png sizes=32x32 href=/imgs/icons/favicon_32_32_next.png><link rel=apple-touch-icon sizes=180x180 href=/imgs/icons/apple_touch_icon_next.png><meta itemprop=name content="afl-fuzz源码分析中篇"><meta itemprop=description content="集中一点,登峰造极"><meta name=description content="集中一点,登峰造极"><meta itemprop=datePublished zgotmplz><meta itemprop=dateModified zgotmplz><meta itemprop=image content="https://zp9080.github.io/imgs/author.png"><meta itemprop=keywords content="Fuzz"><meta property="og:type" content="article"><meta property="og:title" content="afl-fuzz源码分析中篇"><meta property="og:description" content="集中一点,登峰造极"><meta property="og:image" content="/imgs/author.png"><meta property="og:image:width" content="312"><meta property="og:image:height" content="312"><meta property="og:image:type" content="image/jpeg/png/svg/jpg"><meta property="og:url" content="https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/"><meta property="og:site_name" content="f1ow-blog"><meta property="og:locale" content="zh-CN"><meta property="article:author" content="f1ow"><meta property="article:published_time" content="2024-09-01 16:51:06 +0800 CST"><meta property="article:modified_time" content="2024-09-01 16:51:06 +0800 CST"><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/font-awesome/6.6.0/css/all.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/animate.css/4.1.1/animate.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.css><link rel=stylesheet href=/css/main.min.bfbac3431de920c11b5b1cafa45029ea1bc93d5d3da50fed4ab6924b4c250360.css><script type=text/javascript>(function(){localDB={set:function(e,t,n){if(n===0)return;const s=new Date,o=n*864e5,i={value:t,expiry:s.getTime()+o};localStorage.setItem(e,JSON.stringify(i))},get:function(e){const t=localStorage.getItem(e);if(!t)return void 0;const n=JSON.parse(t),s=new Date;return s.getTime()>n.expiry?(localStorage.removeItem(e),void 0):n.value}},theme={active:function(){const e=localDB.get("theme");if(e==null)return;theme.toggle(e),window.matchMedia("(prefers-color-scheme: dark)").addListener(function(e){theme.toggle(e.matches?"dark":"light")})},toggle:function(e){document.documentElement.setAttribute("data-theme",e),localDB.set("theme",e,2);const t=document.querySelector("iframe.giscus-frame");if(t){const n={setConfig:{theme:e}};t.contentWindow.postMessage({giscus:n},"https://giscus.app")}}},theme.active()})(window)</script><script class=next-config data-name=page type=application/json>{"comments":false,"isHome":false,"isPage":true,"path":"afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87","permalink":"https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/","title":"afl-fuzz源码分析中篇","waline":{"js":[{"alias":"@waline/client","alias_name":"waline","file":"dist/pageview.js","name":"pageview","version":"2.15.8"},{"alias":"@waline/client","alias_name":"waline","file":"dist/comment.js","name":"comment","version":"2.15.8"}]}}</script><script type=text/javascript>document.addEventListener("DOMContentLoaded",()=>{var e=document.createElement("script");e.charset="UTF-8",e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.async=!1,e.defer=!0,document.head.appendChild(e),e.onload=function(){NexT.utils.fmtBusuanzi()}})</script><title>afl-fuzz源码分析中篇 - f1ow-blog</title><noscript><link rel=stylesheet href=/css/noscript.css></noscript></head><body itemscope itemtype=http://schema.org/WebPage class=use-motion><div class=headband></div><div class=overlay></div><main class=main><header class=header itemscope itemtype=http://schema.org/WPHeader><div class=header-inner><div class=site-brand-container><div class=site-nav-toggle><div class=toggle aria-label role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div></div><div class=site-meta><a href=/ class=brand rel=start><i class=logo-line></i><h1 class=site-title>f1ow-blog</h1><i class=logo-line></i></a><p class=site-subtitle itemprop=description>集中一点,登峰造极</p></div><div class=site-nav-right><div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div></div></div><nav class=site-nav><ul class="main-menu menu"><li class="menu-item menu-item-home"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-home hvr-icon"></i>首页</a></li><li class="menu-item menu-item-about"><a href=/about/ class=hvr-icon-pulse rel=section><i class="fa fa-user hvr-icon"></i>关于</a></li><li class="menu-item menu-item-archives"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-archive hvr-icon"></i>归档
+<span class=badge>207</span></a></li><li class="menu-item menu-item-categories"><a href=/categories/ class=hvr-icon-pulse rel=section><i class="fa fa-categories hvr-icon"></i>分类</a></li><li class="menu-item menu-item-tags"><a href=/tags/ class=hvr-icon-pulse rel=section><i class="fa fa-tags hvr-icon"></i>标签</a></li><li class="menu-item menu-item-search"><a role=button class="popup-trigger hvr-icon-pulse"><i class="fa fa-search fa-fw hvr-icon"></i>搜索</a></li></ul></nav><div class=search-pop-overlay><div class="popup search-popup"><div class=search-header><span class=search-icon><i class="fa fa-search"></i></span><div class=search-input-container><input autocomplete=off autocapitalize=off maxlength=80 placeholder=搜索... spellcheck=false type=search class=search-input></div><span class=popup-btn-close role=button><i class="fa fa-times-circle"></i></span></div><div class="search-result-container no-result"><div class=search-result-icon><i class="fa fa-spinner fa-pulse fa-5x"></i></div></div></div></div></div><div class="toggle sidebar-toggle" role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div><aside class=sidebar><div class="sidebar-inner sidebar-nav-active sidebar-toc-active"><ul class=sidebar-nav><li class=sidebar-nav-toc>文章目录</li><li class=sidebar-nav-overview>站点概览</li></ul><div class=sidebar-panel-container><div class="post-toc-wrap sidebar-panel"><div class="post-toc animated"><nav id=TableOfContents><ul><li><a href=#前言>前言</a></li><li><a href=#perform_dry_run>perform_dry_run</a><ul><li><a href=#calibrate_case>calibrate_case</a></li><li><a href=#init_forkserver>init_forkserver</a><ul><li><a href=#setsid函数>setsid函数</a></li><li><a href=#有关st_pipe2-ctl_pipe2理解>有关st_pipe[2], ctl_pipe[2]理解</a></li><li><a href=#有关子进程execvtarget_path-argv这个函数的理解>有关子进程execv(target_path, argv)这个函数的理解</a></li></ul></li><li><a href=#has_new_bits>has_new_bits</a></li><li><a href=#write_to_testcase>write_to_testcase</a></li><li><a href=#run_target>run_target</a><ul><li><a href=#classify_counts>classify_counts</a></li></ul></li><li><a href=#count_bytes>count_bytes</a></li><li><a href=#hash32>hash32</a></li><li><a href=#update_bitmap_score>update_bitmap_score</a><ul><li><a href=#minimize_bits>minimize_bits</a></li></ul></li><li><a href=#mark_as_variable>mark_as_variable</a></li></ul></li><li><a href=#show_init_stats>show_init_stats</a></li><li><a href=#write_stats_file>write_stats_file</a></li><li><a href=#save_auto>save_auto</a></li><li><a href=#find_start_position>find_start_position</a></li></ul></nav></div></div><div class="site-overview-wrap sidebar-panel"><div class="site-author site-overview-item animated" itemprop=author itemscope itemtype=http://schema.org/Person><img class=site-author-image itemprop=image alt=f1ow src=/imgs/img-lazy-loading.gif data-src=/imgs/author.png><p class=site-author-name itemprop=name>f1ow</p><div class=site-description itemprop=description>集中一点,登峰造极</div></div><div class="site-state-wrap site-overview-item animated"><nav class=site-state><div class="site-state-item site-state-posts"><a href=/archives/><span class=site-state-item-count>207</span>
+<span class=site-state-item-name>日志</span></a></div><div class="site-state-item site-state-categories"><a href=/categories/><span class=site-state-item-count>38</span>
+<span class=site-state-item-name>分类</span></a></div><div class="site-state-item site-state-tags"><a href=/tags/><span class=site-state-item-count>80</span>
+<span class=site-state-item-name>标签</span></a></div></nav></div><div class="links-of-social site-overview-item animated"><span class=links-of-social-item><a href=https://github.com/zp9080 title="Github → https://github.com/zp9080" rel=noopener class=hvr-icon-pulse target=_blank><i class="fab fa-github fa-fw hvr-icon"></i>
+Github</a></span></div><div class="cc-license animated" itemprop=license><a href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh class=cc-opacity rel=noopener target=_blank title=共享知识><img src=/imgs/img-lazy-loading.gif data-src=/imgs/cc/big/by_nc_sa.svg alt=共享知识></a></div><div class="links-of-blogroll site-overview-item animated"><div class=links-of-blogroll-title><i class="fa fa-globe fa-fw"></i>
+友情链接</div><ul class=links-of-blogroll-list><li class=links-of-blogroll-item><a href=https://v3rdant.cn/ title=https://v3rdant.cn/ target=_blank>v3rdant</a></li><li class=links-of-blogroll-item><a href=https://juicymio.github.io/ title=https://juicymio.github.io/ target=_blank>juicymio</a></li><li class=links-of-blogroll-item><a href=https://ka7arotto.github.io/ title=https://ka7arotto.github.io/ target=_blank>Goku</a></li></ul></div></div></div></div><div id=siteinfo-card-widget class=sidebar-card-widget><div class=item-headline><i class="fas fa-chart-line"></i>
+<span>网站资讯</span></div><div class=siteinfo><div class=siteinfo-item><div class=item-name><i class="fa-solid fa-calendar-check"></i>已运行：</div><div class=item-count id=runTimes data-publishdate=2024-07-28T00:00:00+00:00></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-user"></i>总访客数：</div><div class=item-count id=busuanzi_value_site_uv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-eye"></i>页面浏览：</div><div class=item-count id=busuanzi_value_site_pv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-font"></i>总字数：</div><div class=item-count id=wordsCount data-count=273686></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-mug-hot"></i>阅读约：</div><div class=item-count id=readTimes data-times=660></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-clock-rotate-left"></i>最后更新于：</div><div class=item-count id=last-push-date data-lastpushdate=2025-02-27T17:57:37+08:00></div></div></div></div></aside><div class=sidebar-dimmer></div></header><div class=tool-buttons><div id=toggle-theme class=button title=深浅模式切换><i class="fas fa-adjust"></i></div><div class=back-to-top role=button title=返回顶部><i class="fa fa-arrow-up"></i>
+<span>0%</span></div></div><div class=reading-progress-bar></div><a role=button class="book-mark-link book-mark-link-fixed"></a><a href=https://github.com/zp9080 rel="noopener external nofollow noreferrer" target=_blank title="Follow me on GitHub" class="exturl github-corner"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0 0 115 115h15l12 27L250 250V0z"/><path d="M128.3 109C113.8 99.7 119 89.6 119 89.6 122 82.7 120.5 78.6 120.5 78.6 119.2 72 123.4 76.3 123.4 76.3 127.3 80.9 125.5 87.3 125.5 87.3 122.9 97.6 130.6 101.9 134.4 103.2" fill="currentcolor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115 115C114.9 115.1 118.7 116.5 119.8 115.4l13.9-13.8C136.9 99.2 139.9 98.4 142.2 98.6 133.8 88 127.5 74.4 143.8 58 148.5 53.4 154 51.2 159.7 51 160.3 49.4 163.2 43.6 171.4 40.1 171.4 40.1 176.1 42.5 178.8 56.2 183.1 58.6 187.2 61.8 190.9 65.4 194.5 69 197.7 73.2 200.1 77.6 213.8 80.2 216.3 84.9 216.3 84.9 212.7 93.1 206.9 96 205.4 96.6 205.1 102.4 203 107.8 198.3 112.5 181.9 128.9 168.3 122.5 157.7 114.1 157.9 116.9 156.7 120.9 152.7 124.9L141 136.5C139.8 137.7 141.6 141.9 141.8 141.8z" fill="currentcolor" class="octo-body"/></svg>
+</a><script type=text/javascript src=//sidecar.gitter.im/dist/sidecar.v1.js async></script><script type=text/javascript>((window.gitter={}).chat={}).options={room:"hugo-next/community"}</script><noscript><div class=noscript-warning>Theme NexT works best with JavaScript enabled</div></noscript><div class="main-inner post posts-expand"><div class=post-block><article itemscope itemtype=http://schema.org/Article class=post-content lang><link itemprop=mainEntityOfPage href=https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/><span hidden itemprop=author itemscope itemtype=http://schema.org/Person><meta itemprop=image content="/imgs/author.png"><meta itemprop=name content="f1ow"></span><span hidden itemprop=publisher itemscope itemtype=http://schema.org/Organization><meta itemprop=name content="f1ow"><meta itemprop=description content="集中一点,登峰造极"></span><span hidden itemprop=post itemscope itemtype=http://schema.org/CreativeWork><meta itemprop=name content="afl-fuzz源码分析中篇"><meta itemprop=description content="[TOC]"></span><header class=post-header><h1 class=post-title itemprop="name headline">afl-fuzz源码分析中篇
+<a href=https://github.com/user-name/repo-name/tree/branch-name/subdirectory-name/post/Fuzz/afl-fuzz%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90%e4%b8%ad%e7%af%87.md rel="noopener external nofollow noreferrer" target=_blank class="exturl post-edit-link" title=编辑><i class="fa fa-pen-nib"></i></a></h1><div class=post-meta-container><div class=post-meta-items><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-calendar"></i>
+</span><span class=post-meta-item-text title=发表于>发表于：
+</span><time title="创建时间：2024-09-01 16:51:06 +0800 CST" itemprop="dateCreated datePublished" datetime="2024-09-01 16:51:06 +0800 CST">2024-09-01
+</time></span><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-folder-open"></i>
+</span><span class=post-meta-item-text title=分类于>分类于：
+</span><span itemprop=about itemscope itemtype=http://schema.org/Thing><a href=/categories/fuzz itemprop=url rel=index><span itemprop=name>AEG/Fuzz</span></a></span></span></div><div class=post-meta-items><span class=post-meta-item title=字数><span class=post-meta-item-icon><i class="fas fa-solid fa-file-word"></i>
+</span><span class=post-meta-item-text>字数：</span>
+<span>8420</span>
+</span><span class=post-meta-item title=阅读><span class=post-meta-item-icon><i class="fas fa-solid fa-clock"></i>
+</span><span class=post-meta-item-text>阅读：&ap;</span>
+<span>17分钟</span>
+</span><span class=post-meta-item title=浏览><span class=post-meta-item-icon><i class="fas fa-solid fa-eye"></i>
+</span><span class=post-meta-item-text>浏览：
+</span><span id=busuanzi_value_page_pv data-path=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/><i class="fa fa-sync fa-spin"></i></span></span></div></div></header><div class="post-body autonumber" itemprop=articleBody><p>[TOC]</p><h1 id=前言>前言
+<a class=header-anchor href=#%e5%89%8d%e8%a8%80></a></h1><ul><li>该部分内容是fuzz大循环前的一小部分内容，具体内容如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>// dry run
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>perform_dry_run</span>(use_argv);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 精简队列，这个等到下篇再说
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>cull_queue</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//ui部分
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>show_init_stats</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若是恢复之前的 fuzz，则找到该从队列的什么位置继续
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  seek_to <span style=color:#666>=</span> <span style=color:#00a000>find_start_position</span>();
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 更新 fuzzer_stats 文件
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>write_stats_file</span>(<span style=color:#666>0</span>, <span style=color:#666>0</span>, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 保存 auto extras
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>save_auto</span>();
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>goto</span> stop_fuzzing;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Woop woop woop */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>not_on_tty) {
+</span></span><span style=display:flex><span>    <span style=color:#00a000>sleep</span>(<span style=color:#666>4</span>);
+</span></span><span style=display:flex><span>    start_time <span style=color:#666>+=</span> <span style=color:#666>4000</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>goto</span> stop_fuzzing;
+</span></span><span style=display:flex><span>  }
+</span></span></code></pre></div><ul><li>个人认为很重要的部分如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>perform_dry_run
+</span></span><span style=display:flex><span>calibrate_case 重要之重要，校准函数，对每个testcase会跑多遍，必看
+</span></span><span style=display:flex><span>init_forkserver 初始化fork server函数，很重要
+</span></span><span style=display:flex><span>run_target  重要之重要，也和fork server有关，也是经常用到，必看
+</span></span><span style=display:flex><span>classify_counts 给trace_bits分桶
+</span></span><span style=display:flex><span>update_bitmap_score 和top_rated更新有关
+</span></span></code></pre></div><h1 id=perform_dry_run>perform_dry_run
+<a class=header-anchor href=#perform_dry_run></a></h1><ul><li>对于queue 中的每一个用例，调用 calibrate_case 函数进行校准，根据返回值res进行相应的处理</li><li>perform_dry_run只会跑一次，可以把它当作fuzz之前的一个校准所有testcase的步骤</li><li>主要流程如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>上述代码对于 queue 中的每一个用例，调用 calibrate_case 函数进行校准。用例会被运行多次（默认是 8 次，这个函数的具体细节我们下文讨论）。对于校准结果：
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>若 timeout 了，且 -t 参数里面没有容忍超时、也不处于 resume 模式，则直接退出。
+</span></span><span style=display:flex><span>若 crash 了，则直接退出（除非有 AFL_SKIP_CRASHES 环境变量）。
+</span></span><span style=display:flex><span>若无法执行目标程序，或目标程序没被插桩，则直接退出。
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Perform dry run of all test cases to confirm that the app is working as
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   expected. This is done only for the initial inputs, and only once. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>perform_dry_run</span>(<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span> q <span style=color:#666>=</span> queue;
+</span></span><span style=display:flex><span>  u32 cal_failures <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> skip_crashes <span style=color:#666>=</span> <span style=color:#00a000>getenv</span>(<span style=color:#b44>&#34;AFL_SKIP_CRASHES&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//遍历每一个testcase
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>while</span> (q) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> use_mem;
+</span></span><span style=display:flex><span>    u8  res;
+</span></span><span style=display:flex><span>    s32 fd;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> fn <span style=color:#666>=</span> <span style=color:#00a000>strrchr</span>(q<span style=color:#666>-&gt;</span>fname, <span style=color:#b44>&#39;/&#39;</span>) <span style=color:#666>+</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Attempting dry run with &#39;%s&#39;...&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(q<span style=color:#666>-&gt;</span>fname, O_RDONLY);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to open &#39;%s&#39;&#34;</span>, q<span style=color:#666>-&gt;</span>fname);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    use_mem <span style=color:#666>=</span> <span style=color:#00a000>ck_alloc_nozero</span>(q<span style=color:#666>-&gt;</span>len);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//将testcase内容读进use_mem
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>read</span>(fd, use_mem, q<span style=color:#666>-&gt;</span>len) <span style=color:#666>!=</span> q<span style=color:#666>-&gt;</span>len)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Short read from &#39;%s&#39;&#34;</span>, q<span style=color:#666>-&gt;</span>fname);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//校验这个testcase并获取返回值存到res
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    res <span style=color:#666>=</span> <span style=color:#00a000>calibrate_case</span>(argv, q, use_mem, <span style=color:#666>0</span>, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(use_mem);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (res <span style=color:#666>==</span> crash_mode <span style=color:#666>||</span> res <span style=color:#666>==</span> FAULT_NOBITS)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>SAYF</span>(cGRA <span style=color:#b44>&#34;    len = %u, map size = %u, exec speed = %llu us</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cRST, 
+</span></span><span style=display:flex><span>           q<span style=color:#666>-&gt;</span>len, q<span style=color:#666>-&gt;</span>bitmap_size, q<span style=color:#666>-&gt;</span>exec_us);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>switch</span> (res) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_NONE</span>:
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>//queue是队列的第一个位置的指针，也就是第一个testcase
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#080;font-style:italic>// 若 shm 中有超过 100 个 id 被命中过，这其中却没有 &gt;= 32768 的，说明 id 分布非常不均匀
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#080;font-style:italic>// 此时提醒用户用最新的 AFL 重新编译目标程序
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#a2f;font-weight:700>if</span> (q <span style=color:#666>==</span> queue) <span style=color:#00a000>check_map_coverage</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>// crash exploration 模式，但是却没 crash
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#a2f;font-weight:700>if</span> (crash_mode) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Test case &#39;%s&#39; does *NOT* crash&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_TMOUT</span>:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (timeout_given) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#080;font-style:italic>/* The -t nn+ syntax in the command line sets timeout_given to &#39;2&#39; and
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>             instructs afl-fuzz to tolerate but skip queue entries that time
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>             out. */</span>
+</span></span><span style=display:flex><span>          <span style=color:#080;font-style:italic>// 若 argv 中，时间限制参数是 -t nn+，或 resume 模式，则容忍超时
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>          <span style=color:#a2f;font-weight:700>if</span> (timeout_given <span style=color:#666>&gt;</span> <span style=color:#666>1</span>) {
+</span></span><span style=display:flex><span>            <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;Test case results in a timeout (skipping)&#34;</span>);
+</span></span><span style=display:flex><span>            q<span style=color:#666>-&gt;</span>cal_failed <span style=color:#666>=</span> CAL_CHANCES;
+</span></span><span style=display:flex><span>            cal_failures<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;The program took more than %u ms to process one of the initial test cases.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    Usually, the right thing to do is to relax the -t option - or to delete it</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    altogether and allow the fuzzer to auto-calibrate. That said, if you know</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    what you are doing and want to simply skip the unruly test cases, append</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    &#39;+&#39; at the end of the value passed to -t (&#39;-t %u+&#39;).</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>, exec_tmout,
+</span></span><span style=display:flex><span>               exec_tmout);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Test case &#39;%s&#39; results in a timeout&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;The program took more than %u ms to process one of the initial test cases.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    This is bad news; raising the limit with the -t option is possible, but</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    will probably make the fuzzing process extremely slow.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    If this test case is just a fluke, the other option is to just avoid it</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    altogether, and find one that is less of a CPU hog.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>, exec_tmout);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Test case &#39;%s&#39; results in a timeout&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//发生了crash
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_CRASH</span>:  
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (crash_mode) <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (skip_crashes) {
+</span></span><span style=display:flex><span>          <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;Test case results in a crash (skipping)&#34;</span>);
+</span></span><span style=display:flex><span>          q<span style=color:#666>-&gt;</span>cal_failed <span style=color:#666>=</span> CAL_CHANCES;
+</span></span><span style=display:flex><span>          cal_failures<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (mem_limit) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;Oops, the program crashed with one of the test cases provided. There are</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    several possible explanations:</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - The test case causes known crashes under normal working conditions. If</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      so, please remove it. The fuzzer should be seeded with interesting</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      inputs - but not ones that cause an outright crash.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - The current memory limit (%s) is too low for this program, causing</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      it to die due to OOM when parsing valid files. To fix this, try</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      bumping it up with the -m setting in the command line. If in doubt,</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      try something along the lines of:</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef RLIMIT_AS
+</span></span></span><span style=display:flex><span><span style=color:#080></span>               <span style=color:#b44>&#34;      ( ulimit -Sv $[%llu &lt;&lt; 10]; /path/to/binary [...] &lt;testcase )</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#080>#else
+</span></span></span><span style=display:flex><span><span style=color:#080></span>               <span style=color:#b44>&#34;      ( ulimit -Sd $[%llu &lt;&lt; 10]; /path/to/binary [...] &lt;testcase )</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* ^RLIMIT_AS */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      Tip: you can use http://jwilk.net/software/recidivm to quickly</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      estimate the required amount of virtual memory for the binary. Also,</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      if you are using ASAN, see %s/notes_for_asan.txt.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>  
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - On MacOS X, the semantics of fork() syscalls are non-standard and may</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      break afl-fuzz performance optimizations when running platform-specific</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - Least likely, there is a horrible bug in the fuzzer. If other options</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      fail, poke &lt;lcamtuf@coredump.cx&gt; for troubleshooting tips.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>,
+</span></span><span style=display:flex><span>               <span style=color:#00a000>DMS</span>(mem_limit <span style=color:#666>&lt;&lt;</span> <span style=color:#666>20</span>), mem_limit <span style=color:#666>-</span> <span style=color:#666>1</span>, doc_path);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          <span style=color:#00a000>SAYF</span>(<span style=color:#b44>&#34;</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span> cLRD <span style=color:#b44>&#34;[-] &#34;</span> cRST
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;Oops, the program crashed with one of the test cases provided. There are</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    several possible explanations:</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - The test case causes known crashes under normal working conditions. If</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      so, please remove it. The fuzzer should be seeded with interesting</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      inputs - but not ones that cause an outright crash.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef __APPLE__
+</span></span></span><span style=display:flex><span><span style=color:#080></span>  
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - On MacOS X, the semantics of fork() syscalls are non-standard and may</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      break afl-fuzz performance optimizations when running platform-specific</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.</span><span style=color:#b62;font-weight:700>\n\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* __APPLE__ */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;    - Least likely, there is a horrible bug in the fuzzer. If other options</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>
+</span></span><span style=display:flex><span>               <span style=color:#b44>&#34;      fail, poke &lt;lcamtuf@coredump.cx&gt; for troubleshooting tips.</span><span style=color:#b62;font-weight:700>\n</span><span style=color:#b44>&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Test case &#39;%s&#39; results in a crash&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//检测到无法执行文件
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_ERROR</span>:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Unable to execute target application (&#39;%s&#39;)&#34;</span>, argv[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//检测到没有插桩
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_NOINST</span>:
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;No instrumentation detected&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//没有新的发现
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>case</span> <span style=color:#a0a000>FAULT_NOBITS</span>: 
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>//Number of useless starting paths，最开始的testcase的queue中没有用的数量
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        useless_at_start<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>in_bitmap <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>shuffle_queue)
+</span></span><span style=display:flex><span>          <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;No new instrumentation output, test case may be useless.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>var_behavior) <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;Instrumentation output varies across runs.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    q <span style=color:#666>=</span> q<span style=color:#666>-&gt;</span>next;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//比较校验失败的数量和总的testcase的数量
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (cal_failures) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (cal_failures <span style=color:#666>==</span> queued_paths)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;All test cases time out%s, giving up!&#34;</span>,
+</span></span><span style=display:flex><span>            skip_crashes <span style=color:#666>?</span> <span style=color:#b44>&#34; or crash&#34;</span> <span style=color:#666>:</span> <span style=color:#b44>&#34;&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>WARNF</span>(<span style=color:#b44>&#34;Skipped %u test cases (%0.02f%%) due to timeouts%s.&#34;</span>, cal_failures,
+</span></span><span style=display:flex><span>          ((<span style=color:#0b0;font-weight:700>double</span>)cal_failures) <span style=color:#666>*</span> <span style=color:#666>100</span> <span style=color:#666>/</span> queued_paths,
+</span></span><span style=display:flex><span>          skip_crashes <span style=color:#666>?</span> <span style=color:#b44>&#34; or crashes&#34;</span> <span style=color:#666>:</span> <span style=color:#b44>&#34;&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (cal_failures <span style=color:#666>*</span> <span style=color:#666>5</span> <span style=color:#666>&gt;</span> queued_paths)
+</span></span><span style=display:flex><span>      <span style=color:#00a000>WARNF</span>(cLRD <span style=color:#b44>&#34;High percentage of rejected test cases, check settings!&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;All test cases processed.&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=calibrate_case>calibrate_case
+<a class=header-anchor href=#calibrate_case></a></h2><ul><li>calibrate_case 函数的运行时机至少有两个：一是程序运行之初，用于校准初始 corpus；二是发现了新路径，将有趣的用例加入 queue 时。总之进了 queue 的用例，都要被运行一遍calibrate_case 函数</li><li>总体流程如下</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>可见，校准过程是多次运行用例（默认是 8 次），统计各次运行的结果。
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>若 fork server 没有准备好，就调用 init_forkserver() 初始化 fork server
+</span></span><span style=display:flex><span>多次调用 run_target() 运行目标程序，观察结果。若没有任何 hit count 命中，则认为程序未插桩，报告错误。
+</span></span><span style=display:flex><span>如果发现对某用例多次运行程序，其表现不一致，则将执行次数提升到 40 次，并更新 var_bytes[] （这个全局变量表示 shm 中哪些位置存在不一致性）。另外，将 queue entry 的 var_behavior 标记设为 1。
+</span></span><span style=display:flex><span>更新 queue entry 信息，例如将 exec_us 字段设为校准过程中的执行时间均值。
+</span></span><span style=display:flex><span>给这个用例打分，并更新 top_rated 指针数组。
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span>res <span style=color:#666>=</span> <span style=color:#00a000>calibrate_case</span>(argv, q, use_mem, <span style=color:#666>0</span>, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8 <span style=color:#00a000>calibrate_case</span>(<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv, <span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span> q, u8<span style=color:#666>*</span> use_mem,
+</span></span><span style=display:flex><span>                         u32 handicap, u8 from_queue) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> u8 first_trace[MAP_SIZE];
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>//存储run_target结果  new_bits记录 have_new_bits函数更大的返回值                 是否有variable特性    have_new_bits
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  u8  fault <span style=color:#666>=</span> <span style=color:#666>0</span>,         new_bits <span style=color:#666>=</span> <span style=color:#666>0</span>,                                           var_detected <span style=color:#666>=</span> <span style=color:#666>0</span>,    hnb <span style=color:#666>=</span> <span style=color:#666>0</span>,
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//是否是第一次跑
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      first_run <span style=color:#666>=</span> (q<span style=color:#666>-&gt;</span>exec_cksum <span style=color:#666>==</span> <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u64 start_us, stop_us;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  s32 old_sc <span style=color:#666>=</span> stage_cur, old_sm <span style=color:#666>=</span> stage_max;
+</span></span><span style=display:flex><span>  u32 use_tmout <span style=color:#666>=</span> exec_tmout;
+</span></span><span style=display:flex><span>  u8<span style=color:#666>*</span> old_sn <span style=color:#666>=</span> stage_name;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Be a bit more generous about timeouts when resuming sessions, or when
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     trying to calibrate already-added finds. This helps avoid trouble due
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     to intermittent latency. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//若是 resume 先前的 fuzz 过程，或这个用例并非初始 corpus，则多容忍一点超时
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>from_queue <span style=color:#666>||</span> resuming_fuzz)
+</span></span><span style=display:flex><span>    use_tmout <span style=color:#666>=</span> <span style=color:#00a000>MAX</span>(exec_tmout <span style=color:#666>+</span> CAL_TMOUT_ADD,
+</span></span><span style=display:flex><span>                    exec_tmout <span style=color:#666>*</span> CAL_TMOUT_PERC <span style=color:#666>/</span> <span style=color:#666>100</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>cal_failed<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  stage_name <span style=color:#666>=</span> <span style=color:#b44>&#34;calibration&#34;</span>;
+</span></span><span style=display:flex><span>  stage_max  <span style=color:#666>=</span> fast_cal <span style=color:#666>?</span> <span style=color:#666>3</span> <span style=color:#666>:</span> CAL_CYCLES;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Make sure the forkserver is up before we do anything, and let&#39;s not
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     count its spin-up time toward binary calibration. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果 fork server 没有准备好，就初始化 fork server
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode <span style=color:#666>!=</span> <span style=color:#666>1</span> <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>no_forkserver <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>forksrv_pid)
+</span></span><span style=display:flex><span>    <span style=color:#00a000>init_forkserver</span>(argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>exec_cksum) {
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 若已经有过 checksum，则将 trace_bits 备份到局部静态变量 first_trace（因为 trace_bits 马上就要被改掉了）
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>memcpy</span>(first_trace, trace_bits, MAP_SIZE);
+</span></span><span style=display:flex><span>    hnb <span style=color:#666>=</span> <span style=color:#00a000>has_new_bits</span>(virgin_bits);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (hnb <span style=color:#666>&gt;</span> new_bits) new_bits <span style=color:#666>=</span> hnb;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  start_us <span style=color:#666>=</span> <span style=color:#00a000>get_cur_time_us</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 多次执行用例
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>for</span> (stage_cur <span style=color:#666>=</span> <span style=color:#666>0</span>; stage_cur <span style=color:#666>&lt;</span> stage_max; stage_cur<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u32 cksum;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>first_run <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>(stage_cur <span style=color:#666>%</span> stats_update_freq)) <span style=color:#00a000>show_stats</span>();
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 把用例写入target文件
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>write_to_testcase</span>(use_mem, q<span style=color:#666>-&gt;</span>len);
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 运行目标程序
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    fault <span style=color:#666>=</span> <span style=color:#00a000>run_target</span>(argv, use_tmout);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* stop_soon is set by the handler for Ctrl+C. When it&#39;s pressed,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       we want to bail out quickly. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (stop_soon <span style=color:#666>||</span> fault <span style=color:#666>!=</span> crash_mode) <span style=color:#a2f;font-weight:700>goto</span> abort_calibration;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// shm 没有命中记录，说明没插桩
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>dumb_mode <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>stage_cur <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span><span style=color:#00a000>count_bytes</span>(trace_bits)) {
+</span></span><span style=display:flex><span>      fault <span style=color:#666>=</span> FAULT_NOINST;
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>goto</span> abort_calibration;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 计算本次执行路径的消息摘要
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    cksum <span style=color:#666>=</span> <span style=color:#00a000>hash32</span>(trace_bits, MAP_SIZE, HASH_CONST);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 有两种情况，要么这个用例从未执行过，要么这个用例多次执行的表现不一致
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>exec_cksum <span style=color:#666>!=</span> cksum) {
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>// 更新 virgin_bits
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      hnb <span style=color:#666>=</span> <span style=color:#00a000>has_new_bits</span>(virgin_bits);
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (hnb <span style=color:#666>&gt;</span> new_bits) new_bits <span style=color:#666>=</span> hnb;
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>// q-&gt;exec_cksum不为0，则这个用例以前执行过，且这次执行与以前表现不一致
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>exec_cksum) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> MAP_SIZE; i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>          <span style=color:#080;font-style:italic>// 记录不一致的 hit count 位置，并把本用例的执行次数提升到 40 次
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>          <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>var_bytes[i] <span style=color:#666>&amp;&amp;</span> first_trace[i] <span style=color:#666>!=</span> trace_bits[i]) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            var_bytes[i] <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>            stage_max    <span style=color:#666>=</span> CAL_CYCLES_LONG;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        var_detected <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>// 这是该用例首次执行，记录 checksum 到 q-&gt;exec_cksum 中 ，同时将trace_bits复制到first_trace中
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        q<span style=color:#666>-&gt;</span>exec_cksum <span style=color:#666>=</span> cksum;
+</span></span><span style=display:flex><span>        <span style=color:#00a000>memcpy</span>(first_trace, trace_bits, MAP_SIZE);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  stop_us <span style=color:#666>=</span> <span style=color:#00a000>get_cur_time_us</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  total_cal_us     <span style=color:#666>+=</span> stop_us <span style=color:#666>-</span> start_us;
+</span></span><span style=display:flex><span>  total_cal_cycles <span style=color:#666>+=</span> stage_max;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* OK, let&#39;s collect some stats about the performance of this test case.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     This is used for fuzzing air time calculations in calculate_score(). */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 更新 queue entry 信息
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  q<span style=color:#666>-&gt;</span>exec_us     <span style=color:#666>=</span> (stop_us <span style=color:#666>-</span> start_us) <span style=color:#666>/</span> stage_max;
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>bitmap_size <span style=color:#666>=</span> <span style=color:#00a000>count_bytes</span>(trace_bits);
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>handicap    <span style=color:#666>=</span> handicap;
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>cal_failed  <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  total_bitmap_size <span style=color:#666>+=</span> q<span style=color:#666>-&gt;</span>bitmap_size;
+</span></span><span style=display:flex><span>  total_bitmap_entries<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 给这个用例打分，并更新 top_rated 指针数组 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>update_bitmap_score</span>(q);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* If this case didn&#39;t result in new output from the instrumentation, tell
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     parent. This is a non-critical problem, but something to warn the user
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     about. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 如果这个用例没有产生新的本质不同的路径，则报告用户
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>dumb_mode <span style=color:#666>&amp;&amp;</span> first_run <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>fault <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>new_bits) fault <span style=color:#666>=</span> FAULT_NOBITS;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a0a000>abort_calibration</span>:
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 若发现了新的边，更新一些信息
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (new_bits <span style=color:#666>==</span> <span style=color:#666>2</span> <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>q<span style=color:#666>-&gt;</span>has_new_cov) {
+</span></span><span style=display:flex><span>    q<span style=color:#666>-&gt;</span>has_new_cov <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>    queued_with_cov<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Mark variable paths. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (var_detected) {
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 若该用例多次运行的行为不一致，统计有多少个位置的 hit count 不一致
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    var_byte_count <span style=color:#666>=</span> <span style=color:#00a000>count_bytes</span>(var_bytes);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 将这个 queue entry 标记为 var_behavior
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>q<span style=color:#666>-&gt;</span>var_behavior) {
+</span></span><span style=display:flex><span>      <span style=color:#00a000>mark_as_variable</span>(q);
+</span></span><span style=display:flex><span>      queued_variable<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 退出 calibration 模式，恢复现场
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  stage_name <span style=color:#666>=</span> old_sn;
+</span></span><span style=display:flex><span>  stage_cur  <span style=color:#666>=</span> old_sc;
+</span></span><span style=display:flex><span>  stage_max  <span style=color:#666>=</span> old_sm;
+</span></span><span style=display:flex><span>  
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//ui
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>first_run) <span style=color:#00a000>show_stats</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> fault;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=init_forkserver>init_forkserver
+<a class=header-anchor href=#init_forkserver></a></h2><ul><li>总体流程如图所示 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/25.png alt></li><li>父进程是afl-fuzz本身，子进程是被fuzz的target程序，也即是fork server</li><li>子进程的任务</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>可见，子进程做的事情是：
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>把内存大小限制为 50MB、把 core dump 大小上限设为 0。
+</span></span><span style=display:flex><span>创建一个新的进程组。
+</span></span><span style=display:flex><span>关掉不用的 fd。
+</span></span><span style=display:flex><span>若目标程序从 stdin 读入，则重定向到用例文件。
+</span></span><span style=display:flex><span>把 fd 198 重定向到接收 supervisor 发来消息的管道、把 fd 199 重定向到往 supervisor 回复信息的管道。
+</span></span><span style=display:flex><span>如果用户没有给出 ASan 和 MSan 的选项，则指定为默认值。
+</span></span><span style=display:flex><span>执行目标程序。目标程序会在第一个入口点停下来，往 fd 199 写四个字节内容。由于发送成功，目标程序会担任 fork server，等待 supervisor 发来的指令。
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>总之：子进程收拾一下现场，维护通讯管道，然后把自己 execv 成 fork server
+</span></span></code></pre></div><ul><li>父进程的任务</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>父进程会等待 fork server 发来 4字节内容，若接收成功，则 fork server 成功启动，初始化完成；否则做一点错误处理
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span>EXP_ST <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>init_forkserver</span>(<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> itimerval it;
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>int</span> st_pipe[<span style=color:#666>2</span>], ctl_pipe[<span style=color:#666>2</span>];
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>int</span> status;
+</span></span><span style=display:flex><span>  s32 rlen;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ACTF</span>(<span style=color:#b44>&#34;Spinning up the fork server...&#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 写入 st_pipe[1] 的内容可以在 st_pipe[0] 读到。这个管道用于 fd 199，是 fork server -&gt; supervisor 方向
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>// 写入 ctl_pipe[1] 的内容可以在 ctl_pipe[0] 读到。这个管道用于 fd 198，是 supervisor -&gt; fork server 方向
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>pipe</span>(st_pipe) <span style=color:#666>||</span> <span style=color:#00a000>pipe</span>(ctl_pipe)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;pipe() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  forksrv_pid <span style=color:#666>=</span> <span style=color:#00a000>fork</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (forksrv_pid <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;fork() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//******************************************子进程******************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>forksrv_pid) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>struct</span> rlimit r;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Umpf. On OpenBSD, the default fd limit for root users is set to
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       soft 128. Let&#39;s try to fix that... */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>getrlimit</span>(RLIMIT_NOFILE, <span style=color:#666>&amp;</span>r) <span style=color:#666>&amp;&amp;</span> r.rlim_cur <span style=color:#666>&lt;</span> FORKSRV_FD <span style=color:#666>+</span> <span style=color:#666>2</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      r.rlim_cur <span style=color:#666>=</span> FORKSRV_FD <span style=color:#666>+</span> <span style=color:#666>2</span>;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setrlimit</span>(RLIMIT_NOFILE, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (mem_limit) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      r.rlim_max <span style=color:#666>=</span> r.rlim_cur <span style=color:#666>=</span> ((<span style=color:#0b0;font-weight:700>rlim_t</span>)mem_limit) <span style=color:#666>&lt;&lt;</span> <span style=color:#666>20</span>;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setrlimit</span>(RLIMIT_DATA, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Dumping cores is slow and can lead to anomalies if SIGKILL is delivered
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       before the dump is complete. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    r.rlim_max <span style=color:#666>=</span> r.rlim_cur <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setrlimit</span>(RLIMIT_CORE, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Isolate the process and configure standard descriptors. If out_file is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       specified, stdin is /dev/null; otherwise, out_fd is cloned instead. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>setsid</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>2</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (out_file) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>dup2</span>(out_fd, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(out_fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Set up control and status pipes, close the unneeded original fds. */</span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// fork server 写 st_pipe[1]、读 ctl_pipe[0]
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#080;font-style:italic>// 将 fd 198 重定向到 ctl_pipe[0] 以接收 supervisor 指令
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#080;font-style:italic>// 将 fd 199 重定向到 st_pipe[1] 以向 supervisor 发送回复
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>dup2</span>(ctl_pipe[<span style=color:#666>0</span>], FORKSRV_FD) <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;dup2() failed&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>dup2</span>(st_pipe[<span style=color:#666>1</span>], FORKSRV_FD <span style=color:#666>+</span> <span style=color:#666>1</span>) <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;dup2() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(ctl_pipe[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(ctl_pipe[<span style=color:#666>1</span>]);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(st_pipe[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(st_pipe[<span style=color:#666>1</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(out_dir_fd);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(dev_null_fd);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(dev_urandom_fd);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(<span style=color:#00a000>fileno</span>(plot_file));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//处理环境变量，此处略
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#080;font-style:italic>/*
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>    ...
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>    */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 执行目标程序。它会在第一个入口点停下来，给 supervisor 发送 4 字节内容，并等待指令
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#00a000>execv</span>(target_path, argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Use a distinctive bitmap signature to tell the parent about execv()
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       falling through. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#666>*</span>(u32<span style=color:#666>*</span>)trace_bits <span style=color:#666>=</span> EXEC_FAIL_SIG;
+</span></span><span style=display:flex><span>    <span style=color:#00a000>exit</span>(<span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//*****************************************父进程******************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>/* Close the unneeded endpoints. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// supervisor 读 st_pipe[0]、写 ctl_pipe[1]
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#00a000>close</span>(ctl_pipe[<span style=color:#666>0</span>]);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>close</span>(st_pipe[<span style=color:#666>1</span>]);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  fsrv_ctl_fd <span style=color:#666>=</span> ctl_pipe[<span style=color:#666>1</span>];
+</span></span><span style=display:flex><span>  fsrv_st_fd  <span style=color:#666>=</span> st_pipe[<span style=color:#666>0</span>];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Wait for the fork server to come up, but don&#39;t wait too long. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 设置定时器，等待 fork server 发来 4 字节
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  it.it_value.tv_sec <span style=color:#666>=</span> ((exec_tmout <span style=color:#666>*</span> FORK_WAIT_MULT) <span style=color:#666>/</span> <span style=color:#666>1000</span>);
+</span></span><span style=display:flex><span>  it.it_value.tv_usec <span style=color:#666>=</span> ((exec_tmout <span style=color:#666>*</span> FORK_WAIT_MULT) <span style=color:#666>%</span> <span style=color:#666>1000</span>) <span style=color:#666>*</span> <span style=color:#666>1000</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>setitimer</span>(ITIMER_REAL, <span style=color:#666>&amp;</span>it, <span style=color:#a2f>NULL</span>);
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 注意 read 是阻塞的，会等到 fork server 发来 4字节 或者超时为止
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  rlen <span style=color:#666>=</span> <span style=color:#00a000>read</span>(fsrv_st_fd, <span style=color:#666>&amp;</span>status, <span style=color:#666>4</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  it.it_value.tv_sec <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  it.it_value.tv_usec <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>setitimer</span>(ITIMER_REAL, <span style=color:#666>&amp;</span>it, <span style=color:#a2f>NULL</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* If we have a four-byte &#34;hello&#34; message from the server, we&#39;re all set.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     Otherwise, try to figure out what went wrong. */</span>
+</span></span><span style=display:flex><span>     
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 读到 4 个字节，说明 fork server 成功启动
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (rlen <span style=color:#666>==</span> <span style=color:#666>4</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#00a000>OKF</span>(<span style=color:#b44>&#34;All right - fork server is up.&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//以下为错误处理，略
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>/*
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>  ...
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>  */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=setsid函数>setsid函数
+<a class=header-anchor href=#setsid%e5%87%bd%e6%95%b0></a></h3><p>setsid() 是一个用于创建新会话和进程组的系统调用函数。它主要用于以下目的：</p><p><strong>创建新会话：</strong> 调用setsid()的进程成为一个新会话的会话首领。新会话与调用进程原来所属的会话完全独立。</p><p><strong>创建新进程组：</strong> 调用setsid()的进程成为新进程组的组长。新进程组的ID与调用setsid()的进程的进程ID（PID）相同。</p><p><strong>脱离控制终端：</strong> 如果调用setsid()的进程原来有控制终端，调用setsid()之后，该进程会与原来的控制终端分离，并且新会话不会分配控制终端。此功能常用于后台进程（如守护进程）的创建，以确保它们不再依赖任何终端，并且不会意外地收到来自终端的信号（例如SIGHUP）。</p><p><strong>返回值：</strong></p><p>成功时，setsid()返回新会话ID（即调用进程的进程ID）。
+如果调用进程已经是一个进程组的组长，则setsid()调用失败，并返回-1，errno被设置为EPERM。
+常见应用：</p><p>setsid()经常用于启动守护进程（Daemon），确保进程独立于终端，并且不会意外地受到终端的控制信号干扰。</p><p><strong>在 AFL 中，setsid() 的使用有以下几个目的(由GPT生成)：</strong></p><p>隔离 fork server 进程：通过调用 setsid()，fork server 进程被隔离在一个新的会话和进程组中，这样可以避免受到原有终端和其他进程组的干扰，确保它独立运行。</p><p>防止信号干扰：创建新的会话和进程组后，fork server 进程不会受到来自父进程组的信号（如终端信号或 Ctrl+C），从而提高其稳定性。</p><p>避免意外退出：由于 fork server 进程与终端的控制脱钩，它在终端关闭时不会因为 SIGHUP 信号而意外退出。</p><h3 id=有关st_pipe2-ctl_pipe2理解>有关st_pipe[2], ctl_pipe[2]理解
+<a class=header-anchor href=#%e6%9c%89%e5%85%b3st_pipe2-ctl_pipe2%e7%90%86%e8%a7%a3></a></h3><ul><li>pipe() 函数用于创建一个无名管道，并返回两个文件描述符，分别指向管道的读端（read end）和写端（write end）。st_pipe[0] 和 ctl_pipe[0] 指向管道的读端，st_pipe[1] 和 ctl_pipe[1] 指向管道的写端</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#00a000>pipe</span>(st_pipe) <span style=color:#666>||</span> <span style=color:#00a000>pipe</span>(ctl_pipe)
+</span></span></code></pre></div><ul><li>st_pipe对应199,ctl_pipe对应198</li><li>可以这样理解，st_pipe就是state_pipe，所以对于supervisor，它只用从st_pipe读取数据获取fork server状态即可，因此引用st_pipe[0]。而对于fork server要向st_pipe写数据，因此要用st_pipe[1]</li><li>同时ctl_pipe就是control_pipe，所以对于supervisor，它要向fork server传达命令，因此要用ctl_pipe[1]。而对于fork server要获取命令，因为要用ctl_pipe[0]</li></ul><h3 id=有关子进程execvtarget_path-argv这个函数的理解>有关子进程execv(target_path, argv)这个函数的理解
+<a class=header-anchor href=#%e6%9c%89%e5%85%b3%e5%ad%90%e8%bf%9b%e7%a8%8bexecvtarget_path-argv%e8%bf%99%e4%b8%aa%e5%87%bd%e6%95%b0%e7%9a%84%e7%90%86%e8%a7%a3></a></h3><ul><li>在afl-as源码中分析了main payload的内容，有如下部分,这就是fork server要做的事</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>==</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>while</span> ( <span style=color:#666>1</span> )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> <span style=color:#666>198</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>read</span>(<span style=color:#666>198</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>!=</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v13) <span style=color:#666>=</span> <span style=color:#00a000>fork</span>();
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v13 <span style=color:#666>&lt;</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#666>!</span>v13 )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>goto</span> __afl_fork_resume;
+</span></span><span style=display:flex><span>          _afl_fork_pid <span style=color:#666>=</span> v13;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_fork_pid, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> _afl_fork_pid;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v14) <span style=color:#666>=</span> <span style=color:#00a000>waitpid</span>(_afl_fork_pid, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v14 <span style=color:#666>&lt;=</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#00a000>_exit</span>(v12);
+</span></span><span style=display:flex><span>      }
+</span></span></code></pre></div><ul><li>向fd=199写入4字节，等待supervisor传达过来的指令</li></ul><h2 id=has_new_bits>has_new_bits
+<a class=header-anchor href=#has_new_bits></a></h2><ul><li>更新 virgin_bits。返回值：1 = 仅 hit count 更新；2 = 出现了新的边</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Check if the current execution path brings anything new to the table.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   Update virgin bits to reflect the finds. Returns 1 if the only change is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   the hit-count for a particular tuple; 2 if there are new tuples seen. 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   Updates the map, so subsequent calls will always return 0.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   This function is called after every exec() on a fairly large buffer, so
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   it needs to be fast. We do this in 32-bit and 64-bit flavors. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>inline</span> u8 <span style=color:#00a000>has_new_bits</span>(u8<span style=color:#666>*</span> virgin_map) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32<span style=color:#666>*</span> current <span style=color:#666>=</span> (u32<span style=color:#666>*</span>)trace_bits;
+</span></span><span style=display:flex><span>  u32<span style=color:#666>*</span> virgin  <span style=color:#666>=</span> (u32<span style=color:#666>*</span>)virgin_map;
+</span></span><span style=display:flex><span>  u32  i <span style=color:#666>=</span> (MAP_SIZE <span style=color:#666>&gt;&gt;</span> <span style=color:#666>2</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8   ret <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (i<span style=color:#666>--</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Optimize for (*current &amp; *virgin) == 0 - i.e., no bits in current bitmap
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       that have not been already cleared from the virgin map - since this will
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       almost always be the case. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>unlikely</span>(<span style=color:#666>*</span>current) <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>unlikely</span>(<span style=color:#666>*</span>current <span style=color:#666>&amp;</span> <span style=color:#666>*</span>virgin)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>likely</span>(ret <span style=color:#666>&lt;</span> <span style=color:#666>2</span>)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        u8<span style=color:#666>*</span> cur <span style=color:#666>=</span> (u8<span style=color:#666>*</span>)current;
+</span></span><span style=display:flex><span>        u8<span style=color:#666>*</span> vir <span style=color:#666>=</span> (u8<span style=color:#666>*</span>)virgin;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>/* Looks like we have not found any new bytes yet; see if any non-zero
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>           bytes in current[] are pristine in virgin[]. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>//只有virgin为\xff才表示这个路径未被探索过，只要这个路径被探索过一次，就说明virgin已经不为\xff
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#080;font-style:italic>//此时就让ret=1，表示只是hit count增加
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>        <span style=color:#a2f;font-weight:700>if</span> ((cur[<span style=color:#666>0</span>] <span style=color:#666>&amp;&amp;</span> vir[<span style=color:#666>0</span>] <span style=color:#666>==</span> <span style=color:#666>0xff</span>) <span style=color:#666>||</span> (cur[<span style=color:#666>1</span>] <span style=color:#666>&amp;&amp;</span> vir[<span style=color:#666>1</span>] <span style=color:#666>==</span> <span style=color:#666>0xff</span>) <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>            (cur[<span style=color:#666>2</span>] <span style=color:#666>&amp;&amp;</span> vir[<span style=color:#666>2</span>] <span style=color:#666>==</span> <span style=color:#666>0xff</span>) <span style=color:#666>||</span> (cur[<span style=color:#666>3</span>] <span style=color:#666>&amp;&amp;</span> vir[<span style=color:#666>3</span>] <span style=color:#666>==</span> <span style=color:#666>0xff</span>)) ret <span style=color:#666>=</span> <span style=color:#666>2</span>;
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>else</span> ret <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#666>*</span>virgin <span style=color:#666>&amp;=</span> <span style=color:#666>~*</span>current;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    current<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>    virgin<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (ret <span style=color:#666>&amp;&amp;</span> virgin_map <span style=color:#666>==</span> virgin_bits) bitmap_changed <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> ret;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=write_to_testcase>write_to_testcase
+<a class=header-anchor href=#write_to_testcase></a></h2><ul><li>把testcase内容写进target文件中</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Write modified data to file for testing. If out_file is set, the old file
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   is unlinked and a new one is created. Otherwise, out_fd is rewound and
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   truncated. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>write_to_testcase</span>(<span style=color:#0b0;font-weight:700>void</span><span style=color:#666>*</span> mem, u32 len) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  s32 fd <span style=color:#666>=</span> out_fd;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (out_file) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>unlink</span>(out_file); <span style=color:#080;font-style:italic>/* Ignore errors. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(out_file, O_WRONLY <span style=color:#666>|</span> O_CREAT <span style=color:#666>|</span> O_EXCL, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, out_file);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> <span style=color:#00a000>lseek</span>(fd, <span style=color:#666>0</span>, SEEK_SET);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_write</span>(fd, mem, len, out_file);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>out_file) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>ftruncate</span>(fd, len)) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;ftruncate() failed&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>lseek</span>(fd, <span style=color:#666>0</span>, SEEK_SET);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=run_target>run_target
+<a class=header-anchor href=#run_target></a></h2><ul><li>run_target会把trace_bits清空，但是注意之前已经保存过</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>if</span> (q<span style=color:#666>-&gt;</span>exec_cksum) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>memcpy</span>(first_trace, trace_bits, MAP_SIZE);
+</span></span><span style=display:flex><span>    hnb <span style=color:#666>=</span> <span style=color:#00a000>has_new_bits</span>(virgin_bits);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (hnb <span style=color:#666>&gt;</span> new_bits) new_bits <span style=color:#666>=</span> hnb;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span></code></pre></div><ul><li>用dumb_mode跑,或者不用fork server，最后都是子进程在调用execv(target_path, argv); 父进程就waitpid(child_pid, &amp;status, 0)</li><li>其他情况下</li></ul><ol><li>write(fsrv_ctl_fd, &amp;prev_timed_out, 4) fuzzer向fork server发送命令</li><li>read(fsrv_st_fd, &amp;child_pid, 4) fuzzer从fork server获取child_pid</li><li>read(fsrv_st_fd, &amp;status, 4) fuzzer从fork server获取状态</li></ol><ul><li><strong>可以看到这个和fork server紧密相关，再来复习一次和fork server相关内容。while(1)除非fork失败否则不会退出，也就是说这个fork server第一次启动后就一直在这个while循环中，然后通过read和write和fuzzer进行阻塞式的交流，然后每次交流后fork出子进程执行hit count的增加任务</strong></li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span> <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>==</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>      {
+</span></span><span style=display:flex><span>        <span style=color:#a2f;font-weight:700>while</span> ( <span style=color:#666>1</span> )
+</span></span><span style=display:flex><span>        {
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> <span style=color:#666>198</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#00a000>read</span>(<span style=color:#666>198</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>) <span style=color:#666>!=</span> <span style=color:#666>4</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v13) <span style=color:#666>=</span> <span style=color:#00a000>fork</span>();
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v13 <span style=color:#666>&lt;</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( <span style=color:#666>!</span>v13 )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>goto</span> __afl_fork_resume;
+</span></span><span style=display:flex><span>          _afl_fork_pid <span style=color:#666>=</span> v13;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_fork_pid, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>          v12 <span style=color:#666>=</span> _afl_fork_pid;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>LODWORD</span>(v14) <span style=color:#666>=</span> <span style=color:#00a000>waitpid</span>(_afl_fork_pid, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>          <span style=color:#a2f;font-weight:700>if</span> ( v14 <span style=color:#666>&lt;=</span> <span style=color:#666>0</span> )
+</span></span><span style=display:flex><span>            <span style=color:#a2f;font-weight:700>break</span>;
+</span></span><span style=display:flex><span>          <span style=color:#00a000>write</span>(<span style=color:#666>199</span>, <span style=color:#666>&amp;</span>_afl_temp, <span style=color:#666>4uLL</span>);
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>      }
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Execute target application, monitoring for timeouts. Return status
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   information. The called program will update trace_bits[]. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u8 <span style=color:#00a000>run_target</span>(<span style=color:#0b0;font-weight:700>char</span><span style=color:#666>**</span> argv, u32 timeout) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>struct</span> itimerval it;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> u32 prev_timed_out <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> u64 exec_ms <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#0b0;font-weight:700>int</span> status <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  u32 tb4;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  child_timed_out <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* After this memset, trace_bits[] are effectively volatile, so we
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     must prevent any earlier operations from venturing into that
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     territory. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>memset</span>(trace_bits, <span style=color:#666>0</span>, MAP_SIZE);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>MEM_BARRIER</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* If we&#39;re running in &#34;dumb&#34; mode, we can&#39;t rely on the fork server
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     logic compiled into the target program, so we will just keep calling
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     execve(). There is a bit of code duplication between here and 
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     init_forkserver(), but c&#39;est la vie. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//用dumb_mode跑,或者不用fork server
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode <span style=color:#666>==</span> <span style=color:#666>1</span> <span style=color:#666>||</span> no_forkserver) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    child_pid <span style=color:#666>=</span> <span style=color:#00a000>fork</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (child_pid <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;fork() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//****************************************子程序********************************************
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>child_pid) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>struct</span> rlimit r;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (mem_limit) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        r.rlim_max <span style=color:#666>=</span> r.rlim_cur <span style=color:#666>=</span> ((<span style=color:#0b0;font-weight:700>rlim_t</span>)mem_limit) <span style=color:#666>&lt;&lt;</span> <span style=color:#666>20</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#ifdef RLIMIT_AS
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>setrlimit</span>(RLIMIT_AS, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#else
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>setrlimit</span>(RLIMIT_DATA, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080>#endif </span><span style=color:#080;font-style:italic>/* ^RLIMIT_AS */</span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      r.rlim_max <span style=color:#666>=</span> r.rlim_cur <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setrlimit</span>(RLIMIT_CORE, <span style=color:#666>&amp;</span>r); <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>/* Isolate the process and configure standard descriptors. If out_file is
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         specified, stdin is /dev/null; otherwise, out_fd is cloned instead. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setsid</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>1</span>);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>2</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (out_file) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>dup2</span>(dev_null_fd, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#00a000>dup2</span>(out_fd, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>        <span style=color:#00a000>close</span>(out_fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>/* On Linux, would be faster to use O_CLOEXEC. Maybe TODO. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(dev_null_fd);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(out_dir_fd);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(dev_urandom_fd);
+</span></span><span style=display:flex><span>      <span style=color:#00a000>close</span>(<span style=color:#00a000>fileno</span>(plot_file));
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>/* Set sane defaults for ASAN if nothing else specified. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setenv</span>(<span style=color:#b44>&#34;ASAN_OPTIONS&#34;</span>, <span style=color:#b44>&#34;abort_on_error=1:&#34;</span>
+</span></span><span style=display:flex><span>                             <span style=color:#b44>&#34;detect_leaks=0:&#34;</span>
+</span></span><span style=display:flex><span>                             <span style=color:#b44>&#34;symbolize=0:&#34;</span>
+</span></span><span style=display:flex><span>                             <span style=color:#b44>&#34;allocator_may_return_null=1&#34;</span>, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#00a000>setenv</span>(<span style=color:#b44>&#34;MSAN_OPTIONS&#34;</span>, <span style=color:#b44>&#34;exit_code=&#34;</span> <span style=color:#00a000>STRINGIFY</span>(MSAN_ERROR) <span style=color:#b44>&#34;:&#34;</span>
+</span></span><span style=display:flex><span>                             <span style=color:#b44>&#34;symbolize=0:&#34;</span>
+</span></span><span style=display:flex><span>                             <span style=color:#b44>&#34;msan_track_origins=0&#34;</span>, <span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>//这个不和init_forkserver内容一致???
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>      <span style=color:#00a000>execv</span>(target_path, argv);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>/* Use a distinctive bitmap value to tell the parent about execv()
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>         falling through. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#666>*</span>(u32<span style=color:#666>*</span>)trace_bits <span style=color:#666>=</span> EXEC_FAIL_SIG;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>exit</span>(<span style=color:#666>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    s32 res;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* In non-dumb mode, we have the fork server up and running, so simply
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>       tell it to have at it, and then read back PID. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//向fork server发送命令
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> ((res <span style=color:#666>=</span> <span style=color:#00a000>write</span>(fsrv_ctl_fd, <span style=color:#666>&amp;</span>prev_timed_out, <span style=color:#666>4</span>)) <span style=color:#666>!=</span> <span style=color:#666>4</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>RPFATAL</span>(res, <span style=color:#b44>&#34;Unable to request new process from fork server (OOM?)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>//从fork server获取child_pid
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> ((res <span style=color:#666>=</span> <span style=color:#00a000>read</span>(fsrv_st_fd, <span style=color:#666>&amp;</span>child_pid, <span style=color:#666>4</span>)) <span style=color:#666>!=</span> <span style=color:#666>4</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>RPFATAL</span>(res, <span style=color:#b44>&#34;Unable to request new process from fork server (OOM?)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (child_pid <span style=color:#666>&lt;=</span> <span style=color:#666>0</span>) <span style=color:#00a000>FATAL</span>(<span style=color:#b44>&#34;Fork server is misbehaving (OOM?)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Configure timeout, as requested by user, then wait for child to terminate. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  it.it_value.tv_sec <span style=color:#666>=</span> (timeout <span style=color:#666>/</span> <span style=color:#666>1000</span>);
+</span></span><span style=display:flex><span>  it.it_value.tv_usec <span style=color:#666>=</span> (timeout <span style=color:#666>%</span> <span style=color:#666>1000</span>) <span style=color:#666>*</span> <span style=color:#666>1000</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>setitimer</span>(ITIMER_REAL, <span style=color:#666>&amp;</span>it, <span style=color:#a2f>NULL</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* The SIGALRM handler simply kills the child_pid and sets child_timed_out. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (dumb_mode <span style=color:#666>==</span> <span style=color:#666>1</span> <span style=color:#666>||</span> no_forkserver) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>waitpid</span>(child_pid, <span style=color:#666>&amp;</span>status, <span style=color:#666>0</span>) <span style=color:#666>&lt;=</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;waitpid() failed&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  } <span style=color:#a2f;font-weight:700>else</span> {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    s32 res;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> ((res <span style=color:#666>=</span> <span style=color:#00a000>read</span>(fsrv_st_fd, <span style=color:#666>&amp;</span>status, <span style=color:#666>4</span>)) <span style=color:#666>!=</span> <span style=color:#666>4</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#a2f;font-weight:700>if</span> (stop_soon) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>      <span style=color:#00a000>RPFATAL</span>(res, <span style=color:#b44>&#34;Unable to communicate with fork server (OOM?)&#34;</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span><span style=color:#00a000>WIFSTOPPED</span>(status)) child_pid <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>getitimer</span>(ITIMER_REAL, <span style=color:#666>&amp;</span>it);
+</span></span><span style=display:flex><span>  exec_ms <span style=color:#666>=</span> (u64) timeout <span style=color:#666>-</span> (it.it_value.tv_sec <span style=color:#666>*</span> <span style=color:#666>1000</span> <span style=color:#666>+</span>
+</span></span><span style=display:flex><span>                             it.it_value.tv_usec <span style=color:#666>/</span> <span style=color:#666>1000</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  it.it_value.tv_sec <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  it.it_value.tv_usec <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>setitimer</span>(ITIMER_REAL, <span style=color:#666>&amp;</span>it, <span style=color:#a2f>NULL</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  total_execs<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* Any subsequent operations on trace_bits must not be moved by the
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     compiler below this point. Past this location, trace_bits[] behave
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     very normally and do not have to be treated as volatile. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>MEM_BARRIER</span>();
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  tb4 <span style=color:#666>=</span> <span style=color:#666>*</span>(u32<span style=color:#666>*</span>)trace_bits;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>classify_counts</span>((u32<span style=color:#666>*</span>)trace_bits);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  prev_timed_out <span style=color:#666>=</span> child_timed_out;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>//根据子进程的执行情况返回合适的值
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#080;font-style:italic>/* Report outcome to caller. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>WIFSIGNALED</span>(status) <span style=color:#666>&amp;&amp;</span> <span style=color:#666>!</span>stop_soon) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    kill_signal <span style=color:#666>=</span> <span style=color:#00a000>WTERMSIG</span>(status);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (child_timed_out <span style=color:#666>&amp;&amp;</span> kill_signal <span style=color:#666>==</span> SIGKILL) <span style=color:#a2f;font-weight:700>return</span> FAULT_TMOUT;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> FAULT_CRASH;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* A somewhat nasty hack for MSAN, which doesn&#39;t support abort_on_error and
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     must use a special exit code. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (uses_asan <span style=color:#666>&amp;&amp;</span> <span style=color:#00a000>WEXITSTATUS</span>(status) <span style=color:#666>==</span> MSAN_ERROR) {
+</span></span><span style=display:flex><span>    kill_signal <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> FAULT_CRASH;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> ((dumb_mode <span style=color:#666>==</span> <span style=color:#666>1</span> <span style=color:#666>||</span> no_forkserver) <span style=color:#666>&amp;&amp;</span> tb4 <span style=color:#666>==</span> EXEC_FAIL_SIG)
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>return</span> FAULT_ERROR;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* It makes sense to account for the slowest units only if the testcase was run
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>  under the user defined timeout. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>(timeout <span style=color:#666>&gt;</span> exec_tmout) <span style=color:#666>&amp;&amp;</span> (slowest_exec_ms <span style=color:#666>&lt;</span> exec_ms)) {
+</span></span><span style=display:flex><span>    slowest_exec_ms <span style=color:#666>=</span> exec_ms;
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> FAULT_NONE;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=classify_counts>classify_counts
+<a class=header-anchor href=#classify_counts></a></h3><ul><li>将trace_bits中的内容映射到合适的桶中</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>inline</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>classify_counts</span>(u32<span style=color:#666>*</span> mem) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i <span style=color:#666>=</span> MAP_SIZE <span style=color:#666>&gt;&gt;</span> <span style=color:#666>2</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (i<span style=color:#666>--</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>/* Optimize for sparse bitmaps. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>unlikely</span>(<span style=color:#666>*</span>mem)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      u16<span style=color:#666>*</span> mem16 <span style=color:#666>=</span> (u16<span style=color:#666>*</span>)mem;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      mem16[<span style=color:#666>0</span>] <span style=color:#666>=</span> count_class_lookup16[mem16[<span style=color:#666>0</span>]];
+</span></span><span style=display:flex><span>      mem16[<span style=color:#666>1</span>] <span style=color:#666>=</span> count_class_lookup16[mem16[<span style=color:#666>1</span>]];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    mem<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=count_bytes>count_bytes
+<a class=header-anchor href=#count_bytes></a></h2><ul><li>看有多个少字节值不为0</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080>#define FF(_b)  (0xff &lt;&lt; ((_b) &lt;&lt; 3))
+</span></span></span><span style=display:flex><span><span style=color:#080></span><span style=color:#080;font-style:italic>/* Count the number of bytes set in the bitmap. Called fairly sporadically,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   mostly to update the status screen or calibrate and examine confirmed
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   new paths. */</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 <span style=color:#00a000>count_bytes</span>(u8<span style=color:#666>*</span> mem) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32<span style=color:#666>*</span> ptr <span style=color:#666>=</span> (u32<span style=color:#666>*</span>)mem;
+</span></span><span style=display:flex><span>  u32  i   <span style=color:#666>=</span> (MAP_SIZE <span style=color:#666>&gt;&gt;</span> <span style=color:#666>2</span>);
+</span></span><span style=display:flex><span>  u32  ret <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (i<span style=color:#666>--</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u32 v <span style=color:#666>=</span> <span style=color:#666>*</span>(ptr<span style=color:#666>++</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>v) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (v <span style=color:#666>&amp;</span> <span style=color:#00a000>FF</span>(<span style=color:#666>0</span>)) ret<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (v <span style=color:#666>&amp;</span> <span style=color:#00a000>FF</span>(<span style=color:#666>1</span>)) ret<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (v <span style=color:#666>&amp;</span> <span style=color:#00a000>FF</span>(<span style=color:#666>2</span>)) ret<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (v <span style=color:#666>&amp;</span> <span style=color:#00a000>FF</span>(<span style=color:#666>3</span>)) ret<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> ret;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=hash32>hash32
+<a class=header-anchor href=#hash32></a></h2><ul><li>用于计算cksum，具体细节不必深究</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080>#define ROL32(_x, _r)  ((((u32)(_x)) &lt;&lt; (_r)) | (((u32)(_x)) &gt;&gt; (32 - (_r))))
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#a2f;font-weight:700>inline</span> u32 <span style=color:#00a000>hash32</span>(<span style=color:#a2f;font-weight:700>const</span> <span style=color:#0b0;font-weight:700>void</span><span style=color:#666>*</span> key, u32 len, u32 seed) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>const</span> u32<span style=color:#666>*</span> data  <span style=color:#666>=</span> (u32<span style=color:#666>*</span>)key;
+</span></span><span style=display:flex><span>  u32 h1 <span style=color:#666>=</span> seed <span style=color:#666>^</span> len;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  len <span style=color:#666>&gt;&gt;=</span> <span style=color:#666>2</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (len<span style=color:#666>--</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u32 k1 <span style=color:#666>=</span> <span style=color:#666>*</span>data<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    k1 <span style=color:#666>*=</span> <span style=color:#666>0xcc9e2d51</span>;
+</span></span><span style=display:flex><span>    k1  <span style=color:#666>=</span> <span style=color:#00a000>ROL32</span>(k1, <span style=color:#666>15</span>);
+</span></span><span style=display:flex><span>    k1 <span style=color:#666>*=</span> <span style=color:#666>0x1b873593</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    h1 <span style=color:#666>^=</span> k1;
+</span></span><span style=display:flex><span>    h1  <span style=color:#666>=</span> <span style=color:#00a000>ROL32</span>(h1, <span style=color:#666>13</span>);
+</span></span><span style=display:flex><span>    h1  <span style=color:#666>=</span> h1 <span style=color:#666>*</span> <span style=color:#666>5</span> <span style=color:#666>+</span> <span style=color:#666>0xe6546b64</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  h1 <span style=color:#666>^=</span> h1 <span style=color:#666>&gt;&gt;</span> <span style=color:#666>16</span>;
+</span></span><span style=display:flex><span>  h1 <span style=color:#666>*=</span> <span style=color:#666>0x85ebca6b</span>;
+</span></span><span style=display:flex><span>  h1 <span style=color:#666>^=</span> h1 <span style=color:#666>&gt;&gt;</span> <span style=color:#666>13</span>;
+</span></span><span style=display:flex><span>  h1 <span style=color:#666>*=</span> <span style=color:#666>0xc2b2ae35</span>;
+</span></span><span style=display:flex><span>  h1 <span style=color:#666>^=</span> h1 <span style=color:#666>&gt;&gt;</span> <span style=color:#666>16</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> h1;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=update_bitmap_score>update_bitmap_score
+<a class=header-anchor href=#update_bitmap_score></a></h2><p>当 fuzz 进行到后期，可能一些用例的边覆盖度，是它们祖先的边覆盖度的严格超集，因此可以考虑缩小 corpus，专注于这些超级用例（当然，其他用例不是被彻底放弃了，而是被以很大的概率忽略掉）。因此，AFL 倾向于找个 queue 中用例的子集，使得它们在覆盖所有已知边的同时尽可能小。这样的用例被认为是 favored 的。AFL 作者声称，这样形成的 favored 集合，比整个 corpus 可以小 5 到 10 倍。</p><p>然而，子集覆盖问题是 NP-完全的。AFL 必须保证速度，所以它采用了一个不准确但是很高速的算法：对于 shm 的每一个位置（这代表一条边），记录 top_rated 指针，指向 queue 中覆盖了这条边的、分数最小的那个用例。一个用例的分数等于 exec_us * len，即执行时间与文件大小的乘积。</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>update_bitmap_score</span>(<span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span> q) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 计算case的fav_factor，计算方法是执行时间和样例大小的乘积
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  u64 fav_factor <span style=color:#666>=</span> q<span style=color:#666>-&gt;</span>exec_us <span style=color:#666>*</span> q<span style=color:#666>-&gt;</span>len;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>/* For every byte set in trace_bits[], see if there is a previous winner,
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>     and how it compares to us. */</span>
+</span></span><span style=display:flex><span>  <span style=color:#080;font-style:italic>// 遍历trace_bits数组
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> MAP_SIZE; i<span style=color:#666>++</span>)
+</span></span><span style=display:flex><span>    <span style=color:#080;font-style:italic>// 不为0，表示已经被覆盖到的路径
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>    <span style=color:#a2f;font-weight:700>if</span> (trace_bits[i]) {
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>// 检查top_rated是否存在
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>       <span style=color:#a2f;font-weight:700>if</span> (top_rated[i]) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#080;font-style:italic>/* Faster-executing or smaller test cases are favored. */</span>
+</span></span><span style=display:flex><span>        <span style=color:#080;font-style:italic>// 如果top_rated[i]的更小，则代表它的更优，不做处理，继续遍历下一个路径
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>         <span style=color:#a2f;font-weight:700>if</span> (fav_factor <span style=color:#666>&gt;</span> top_rated[i]<span style=color:#666>-&gt;</span>exec_us <span style=color:#666>*</span> top_rated[i]<span style=color:#666>-&gt;</span>len) <span style=color:#a2f;font-weight:700>continue</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#080;font-style:italic>/* Looks like we&#39;re going to win. Decrease ref count for the
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>            previous winner, discard its trace_bits[] if necessary. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>         <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!--</span>top_rated[i]<span style=color:#666>-&gt;</span>tc_ref) {
+</span></span><span style=display:flex><span>           <span style=color:#00a000>ck_free</span>(top_rated[i]<span style=color:#666>-&gt;</span>trace_mini);
+</span></span><span style=display:flex><span>           top_rated[i]<span style=color:#666>-&gt;</span>trace_mini <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>         }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>       }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>       <span style=color:#080;font-style:italic>/* Insert ourselves as the new winner. */</span>
+</span></span><span style=display:flex><span>      <span style=color:#080;font-style:italic>// 设置为当前的testcase
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic></span>       top_rated[i] <span style=color:#666>=</span> q;
+</span></span><span style=display:flex><span>       q<span style=color:#666>-&gt;</span>tc_ref<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>       <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>q<span style=color:#666>-&gt;</span>trace_mini) {
+</span></span><span style=display:flex><span>         q<span style=color:#666>-&gt;</span>trace_mini <span style=color:#666>=</span> <span style=color:#00a000>ck_alloc</span>(MAP_SIZE <span style=color:#666>&gt;&gt;</span> <span style=color:#666>3</span>);
+</span></span><span style=display:flex><span>         <span style=color:#00a000>minimize_bits</span>(q<span style=color:#666>-&gt;</span>trace_mini, trace_bits);
+</span></span><span style=display:flex><span>       }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>       score_changed <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>     }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=minimize_bits>minimize_bits
+<a class=header-anchor href=#minimize_bits></a></h3><p>在程序分析和模糊测试中，经常使用位图（bitmap）来记录程序执行路径。位图中的每一位（bit）通常对应程序中某个特定的路径分支或代码块的执行情况。</p><p>完整位图 (trace_bits): 每一位对应某个路径，如果该位为 1，则表示程序在一次执行中触发了这个路径。
+压缩位图 (trace_mini): 用于压缩存储这些路径信息，目的是减少内存占用。压缩过程中，<strong>只记录哪些路径被触发过，而不记录具体的触发次数。</strong></p><ul><li>总的来说这一步就是进行路径压缩，以更小的存储形式存到q->trace_mini中</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>minimize_bits</span>(u8<span style=color:#666>*</span> dst, u8<span style=color:#666>*</span> src) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>while</span> (i <span style=color:#666>&lt;</span> MAP_SIZE) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>*</span>(src<span style=color:#666>++</span>)) dst[i <span style=color:#666>&gt;&gt;</span> <span style=color:#666>3</span>] <span style=color:#666>|=</span> <span style=color:#666>1</span> <span style=color:#666>&lt;&lt;</span> (i <span style=color:#666>&amp;</span> <span style=color:#666>7</span>);
+</span></span><span style=display:flex><span>    i<span style=color:#666>++</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=mark_as_variable>mark_as_variable
+<a class=header-anchor href=#mark_as_variable></a></h2><ul><li>variable就是一个testcase但是执行结果却不一样，那么就将其保存到out_dir/queue/.state/variable_behavior/中，同时更新queue中其var_behavior成员的值</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Mark as variable. Create symlinks if possible to make it easier to examine
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   the files. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>mark_as_variable</span>(<span style=color:#a2f;font-weight:700>struct</span> queue_entry<span style=color:#666>*</span> q) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8 <span style=color:#666>*</span>fn <span style=color:#666>=</span> <span style=color:#00a000>strrchr</span>(q<span style=color:#666>-&gt;</span>fname, <span style=color:#b44>&#39;/&#39;</span>) <span style=color:#666>+</span> <span style=color:#666>1</span>, <span style=color:#666>*</span>ldest;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  ldest <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;../../%s&#34;</span>, fn);
+</span></span><span style=display:flex><span>  fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/variable_behavior/%s&#34;</span>, out_dir, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#00a000>symlink</span>(ldest, fn)) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    s32 fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(fn, O_WRONLY <span style=color:#666>|</span> O_CREAT <span style=color:#666>|</span> O_EXCL, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, fn);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(ldest);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  q<span style=color:#666>-&gt;</span>var_behavior <span style=color:#666>=</span> <span style=color:#666>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=show_init_stats>show_init_stats
+<a class=header-anchor href=#show_init_stats></a></h1><ul><li>ui部分</li></ul><h1 id=write_stats_file>write_stats_file
+<a class=header-anchor href=#write_stats_file></a></h1><ul><li>更新 fuzzer_stats 文件</li></ul><h1 id=save_auto>save_auto
+<a class=header-anchor href=#save_auto></a></h1><ul><li>保存 auto extras</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080;font-style:italic>/* Save automatically generated extras. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> <span style=color:#0b0;font-weight:700>void</span> <span style=color:#00a000>save_auto</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u32 i;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>auto_changed) <span style=color:#a2f;font-weight:700>return</span>;
+</span></span><span style=display:flex><span>  auto_changed <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>for</span> (i <span style=color:#666>=</span> <span style=color:#666>0</span>; i <span style=color:#666>&lt;</span> <span style=color:#00a000>MIN</span>(USE_AUTO_EXTRAS, a_extras_cnt); i<span style=color:#666>++</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    u8<span style=color:#666>*</span> fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/queue/.state/auto_extras/auto_%06u&#34;</span>, out_dir, i);
+</span></span><span style=display:flex><span>    s32 fd;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(fn, O_WRONLY <span style=color:#666>|</span> O_CREAT <span style=color:#666>|</span> O_TRUNC, <span style=color:#666>0600</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#00a000>PFATAL</span>(<span style=color:#b44>&#34;Unable to create &#39;%s&#39;&#34;</span>, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_write</span>(fd, a_extras[i].data, a_extras[i].len, fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>    <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h1 id=find_start_position>find_start_position
+<a class=header-anchor href=#find_start_position></a></h1><ul><li>若是恢复之前的 fuzz，则找到该从队列的什么位置继续</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span>seek_to <span style=color:#666>=</span> <span style=color:#00a000>find_start_position</span>();
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>/* When resuming, try to find the queue position to start from. This makes sense
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>   only when resuming, and when we can find the original fuzzer_stats. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>static</span> u32 <span style=color:#00a000>find_start_position</span>(<span style=color:#0b0;font-weight:700>void</span>) {
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>static</span> u8 tmp[<span style=color:#666>4096</span>]; <span style=color:#080;font-style:italic>/* Ought to be enough for anybody. */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  u8  <span style=color:#666>*</span>fn, <span style=color:#666>*</span>off;
+</span></span><span style=display:flex><span>  s32 fd, i;
+</span></span><span style=display:flex><span>  u32 ret;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>resuming_fuzz) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (in_place_resume) fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/fuzzer_stats&#34;</span>, out_dir);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>else</span> fn <span style=color:#666>=</span> <span style=color:#00a000>alloc_printf</span>(<span style=color:#b44>&#34;%s/../fuzzer_stats&#34;</span>, in_dir);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  fd <span style=color:#666>=</span> <span style=color:#00a000>open</span>(fn, O_RDONLY);
+</span></span><span style=display:flex><span>  <span style=color:#00a000>ck_free</span>(fn);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (fd <span style=color:#666>&lt;</span> <span style=color:#666>0</span>) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  i <span style=color:#666>=</span> <span style=color:#00a000>read</span>(fd, tmp, <span style=color:#a2f;font-weight:700>sizeof</span>(tmp) <span style=color:#666>-</span> <span style=color:#666>1</span>); (<span style=color:#0b0;font-weight:700>void</span>)i; <span style=color:#080;font-style:italic>/* Ignore errors */</span>
+</span></span><span style=display:flex><span>  <span style=color:#00a000>close</span>(fd);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  off <span style=color:#666>=</span> <span style=color:#00a000>strstr</span>(tmp, <span style=color:#b44>&#34;cur_path          : &#34;</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>off) <span style=color:#a2f;font-weight:700>return</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  ret <span style=color:#666>=</span> <span style=color:#00a000>atoi</span>(off <span style=color:#666>+</span> <span style=color:#666>20</span>);
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>if</span> (ret <span style=color:#666>&gt;=</span> queued_paths) ret <span style=color:#666>=</span> <span style=color:#666>0</span>;
+</span></span><span style=display:flex><span>  <span style=color:#a2f;font-weight:700>return</span> ret;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div></div><footer class=post-footer><div class=post-tags><a href=/tags/fuzz>Fuzz</a></div><div class=addthis_inline_share_toolbox style=text-align:center></div><hr><div class=reward-container><div><i class="fa-solid fa-mug-hot"></i>请我喝杯咖啡吧 ヾ(^▽^*)))</div><button>
+赞赏</button><div class=post-reward><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/ali-pay.png alt="f1ow - 支付宝">
+<span>支付宝</span></div><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/wechat-pay.png alt="f1ow - 微信">
+<span>微信</span></div></div></div><div class=post-copyright><img src=/imgs/cc/cc.svg width=75 height=75 align=right alt=共享知识><ul><li class=post-copyright-title><strong>文章标题：</strong>
+afl-fuzz源码分析中篇</li><li class=post-copyright-author><strong>本文作者： </strong>f1ow</li><li class=post-copyright-link><strong>本文链接：</strong>
+<a id=post-cr-link href=https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/ title=afl-fuzz源码分析中篇>https://zp9080.github.io/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%AD%E7%AF%87/</a></li><li class=post-copyright-license><strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <i class="fab fa-fw fa-creative-commons"></i><a target=_blank href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh>BY-NC-SA</a> 许可协议。转载请注明出处！</li></ul></div><div class=post-nav><div class="post-nav-next post-nav-item"><a href=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8B%E7%AF%87/ rel=next title=afl-fuzz源码分析下篇><i class="fa fa-chevron-left"></i> afl-fuzz源码分析下篇</a></div><div class="post-nav-prev post-nav-item"><a href=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8A%E7%AF%87/ rel=prev title=afl-fuzz源码分析上篇>afl-fuzz源码分析上篇
+<i class="fa fa-chevron-right"></i></a></div></div></footer></article></div></div></main><footer class=footer><div class=footer-inner><div class=copyright>&copy;
+<span itemprop=copyrightYear>2024 - 2025
+</span><span class=with-love><i class="fa fa-heart"></i>
+</span><span class=author itemprop=copyrightHolder>f1ow</span></div><div class=powered-by>由 <a href=https://gohugo.io title=0.126.1 target=_blank>Hugo</a> & <a href=https://github.com/hugo-next/hugo-theme-next title=4.6.3 target=_blank>Hugo NexT.Gemini</a> 强力驱动</div><div class=beian><a href=https://beian.miit.gov.cn target=_blank>鄂ICP备 20240001号</a>
+<img src=/imgs/gongan.png alt=鄂公网安备>
+<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=42010002002000" target=_blank>鄂公网安备 42010002002000 号</a></div><div class=vendors-list><a target=_blank href=https://vercel.com title=Vercel><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/vercel.svg alt=Vercel>
+</a><a target=_blank href=https://upyun.com title=又拍云><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/upyun.png alt=又拍云>
+</a><a target=_blank href=https://github.com title=Github><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/github.svg alt=Github>
+</a><span>提供CDN/云资源支持</span></div></div></footer><script type=text/javascript src=https://zp9080.github.io/3rd/animejs/3.2.2/anime.min.js crossorigin=anonymous defer></script><script type=text/javascript src=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.js crossorigin=anonymous defer></script><script class=next-config data-name=main type=application/json>{"bookmark":{"color":"#222","enable":true,"save":"manual"},"copybtn":true,"darkmode":false,"giscus":{"cfg":{"category":"Comments","categoryid":null,"emit":false,"inputposition":"top","mapping":"title","reactions":false,"repo":"username/repo-name","repoid":null,"theme":"preferred_color_scheme"},"js":"https://giscus.app/client.js"},"hostname":"https://zp9080.github.io/","i18n":{"ds_day":" 天前","ds_days":" 天 ","ds_hour":" 小时前","ds_hours":" 小时 ","ds_just":"刚刚","ds_min":" 分钟前","ds_mins":" 分钟","ds_month":" 个月前","ds_years":" 年 ","empty":"没有找到任何搜索结果：${query}","hits":"找到 ${hits} 个搜索结果","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","placeholder":"搜索..."},"lang":"zh-CN","lazyload":false,"localSearch":{"enable":true,"limit":1e3,"path":"/searchindexes.xml","preload":false,"topnperarticle":-1,"trigger":"auto","unescape":false},"motion":{"async":true,"enable":true,"transition":{"collheader":"fadeInLeft","postblock":"fadeIn","postbody":"fadeInDown","postheader":"fadeInDown","sidebar":"fadeInUp"}},"postmeta":{"comments":{"enable":true,"plugin":"waline"},"views":{"enable":true,"plugin":"busuanzi"}},"root":"/","scheme":"Gemini","sidebar":{"display":"post","offset":12,"padding":18,"position":"left","width":256},"vendor":{"plugins":"local","router":{"name":"local","type":"modern","url":"https://zp9080.github.io/3rd"}},"version":"4.6.3","waline":{"cfg":{"emoji":false,"imguploader":false,"placeholder":"请文明发言哟 ヾ(≧▽≦*)o","reaction":true,"reactiontext":["点赞","踩一下","得意","不屑","尴尬","睡觉"],"reactiontitle":"你认为这篇文章怎么样？","requiredmeta":["nick","mail"],"serverurl":null,"sofa":"快来发表你的意见吧 (≧∀≦)ゞ","wordlimit":200},"css":{"alias":"@waline/client","file":"dist/waline.css","name":"waline","version":"2.15.8"},"js":{"alias":"@waline/client","file":"dist/waline.js","name":"waline","version":"2.15.8"}}}</script><script type=text/javascript src=/js/main.min.befa9b7d22ec90da86c74c5dbff5ee42c12e9fc6d6f4448bfcc596cc329b19e8.js defer></script></body></html>

